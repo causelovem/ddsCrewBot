@@ -1,0 +1,9 @@
+tokenBot.py
+bot_database.db
+serverInfo.py
+adminId.py
+sendlogbot.py
+__pycache__/*
+*.pem
+log*
+how_to_start.txt
