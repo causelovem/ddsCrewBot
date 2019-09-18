@@ -4,24 +4,36 @@ import threading as th
 import datetime
 import config as cfg
 import database as db
-import random
+import random as rnd
 import time
 
-random.seed(datetime.datetime.now().time().second)
+rnd.seed(datetime.datetime.now().time().second)
 
 
 @cfg.loglog(command='call_all', type='bot')
-def call_all(query=db.sel_all_text):
+def call_all(query=db.sel_all_text, chat_id=None):
     chatUsers = {}
-    for cid in cfg.subscribed_chats:
-        users = db.sql_exec(query, [cid])
-        if users == []:
-            chatUsers[cid] = ''
-            continue
+    if chat_id is None:
+        for cid in cfg.subscribed_chats:
+            users = db.sql_exec(query, [cid])
+            if users == []:
+                chatUsers[cid] = ''
+                continue
+            call_users = 'Эй, @all: '
+            for i in users:
+                call_users += '@' + str(i[0]) + ' '
+            chatUsers[cid] = call_users.strip() + '\n'
+    else:
+        users = db.sql_exec(query, [chat_id])
+        if users == [] or chat_id not in cfg.subscribed_chats:
+            chatUsers[chat_id] = ''
+            return chatUsers
+
         call_users = 'Эй, @all: '
         for i in users:
             call_users += '@' + str(i[0]) + ' '
-        chatUsers[cid] = call_users.strip() + '\n'
+        chatUsers[chat_id] = call_users.strip() + '\n'
+
     return chatUsers
 
 
@@ -29,9 +41,9 @@ def call_all(query=db.sel_all_text):
 def send_msg(bot, msg, cid=None):
     if cid is None:
         for chat_id in cfg.subscribed_chats:
-            bot.send_message(chat_id, msg)
+            bot.send_message(chat_id, msg, parse_mode='Markdown')
     else:
-        bot.send_message(cid, msg)
+        bot.send_message(cid, msg, parse_mode='Markdown')
 
 
 @cfg.loglog(command='check_metadata', type='bot')
@@ -123,7 +135,7 @@ def voronkov_timer(bot, meta):
     if user == []:
         users = db.sql_exec(db.sel_all_text, [meta[2]])
         if users != []:
-            user = [random.choice(users)]
+            user = [rnd.choice(users)]
             print('! НЕТ ТЕКУЩЕГО ЮЗЕРА, БЫЛ ВЫБРАН ДРУГОЙ !')
         else:
             # обновляем строку в метаданных как ошибочную
@@ -133,20 +145,30 @@ def voronkov_timer(bot, meta):
 
     user = '@' + user[0][0]
 
-    scenario = random.choice(cfg.voronkov_text)
+    scenario = rnd.choice(cfg.voronkov_text)
     print(scenario)
 
     send_msg(bot, user + scenario[0], meta[2])
     time.sleep(1)
     send_msg(bot, scenario[1], meta[2])
     time.sleep(1)
-    send_msg(bot, scenario[2] + str(random.randint(10000, 19999)), meta[2])
+    send_msg(bot, scenario[2] + str(rnd.randint(10000, 19999)), meta[2])
     time.sleep(1)
     send_msg(bot, scenario[3], meta[2])
     bot.send_sticker(meta[2], cfg.stiker_voronkov)
 
     # обновляем строку в метаданных как успешно отработавшую
     db.sql_exec(db.upd_operation_meta_text, [0, meta[0]])
+
+
+@cfg.loglog(command='dinner_timer', type='bot')
+def dinner_timer(bot, chat_id):
+    chatUsers = call_all(db.sel_all_text, chat_id)
+    for cid, msg in chatUsers.items():
+        if msg == '':
+            print('Чат отписался от рассылки, сообщение не отправлено; CHAT_ID = ' + str(cid))
+        else:
+            send_msg(bot, '{}{}{}*{}*'.format(msg, rnd.choice(cfg.dinner_notif_text), rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
 
 
 @cfg.loglog(command='one_hour_timer', type='bot')
@@ -193,7 +215,7 @@ def one_hour_timer(bot):
         if time_now.weekday() not in (5, 6):
             # доброе утро и вызвать pidora
             if str(time_now.time().hour) == '9':
-                send_msg(bot, random.choice(cfg.gm_text))
+                send_msg(bot, rnd.choice(cfg.gm_text))
                 send_msg(bot, '/pidor@SublimeBot')
 
             # напоминание о голосовании за обед
@@ -201,13 +223,14 @@ def one_hour_timer(bot):
                 chatUsers = call_all(db.sel_nonvoted_users_text)
                 for cid, msg in chatUsers.items():
                     if msg == '':
-                        send_msg(bot, random.choice(cfg.success_vote_notif_text), cid)
+                        send_msg(bot, rnd.choice(cfg.success_vote_notif_text), cid)
                     else:
-                        send_msg(bot, msg + random.choice(cfg.vote_notif_text), cid)
+                        send_msg(bot, msg + rnd.choice(cfg.vote_notif_text), cid)
 
             # обед
             if str(time_now.time().hour) == '12':
                 chatUsers = call_all()
+                cur_time = datetime.timedelta(hours=time_now.time().hour, minutes=time_now.time().minute, seconds=time_now.time().second)
                 for cid, msg in chatUsers.items():
                     if time_now.weekday() == 0:
                         cfg.dinner_time = cfg.dinner_default_time
@@ -238,9 +261,9 @@ def one_hour_timer(bot):
                         cfg.show_din_time = str(cfg.dinner_time)[:-3]
 
                     if msg == '':
-                        send_msg(bot, random.choice(cfg.dinner_text) + cfg.show_din_time, cid)
+                        send_msg(bot, '{}*{}*'.format(rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
                     else:
-                        send_msg(bot, msg + random.choice(cfg.dinner_text) + cfg.show_din_time, cid)
+                        send_msg(bot, '{}{}*{}*'.format(msg, rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
                     # сохраняем историю голосования
                     db.sql_exec(db.colect_election_hist_text, [str(time_now.date())])
                     # обнуляем время голосования
@@ -248,17 +271,21 @@ def one_hour_timer(bot):
                     # обнуляем время штрафЬ
                     db.sql_exec(db.reset_penalty_B_time_text, [0])
 
-            # # намёк покушать
+                    # ставим таймер за 10 минут до обеда, о напоминании об обеде
+                    delta = cfg.dinner_time - cur_time - datetime.timedelta(minutes=10, seconds=0)
+                    th.Timer(int(delta.total_seconds()) + 1, dinner_timer, args=(bot, cid,)).start()
+
+            # # намёк поесть
             # if str(time_now.time().hour) == '17':
-            #     send_msg(bot, random.choice(cfg.eat_text))
+            #     send_msg(bot, rnd.choice(cfg.eat_text))
 
             # пора уходить с работы
             if str(time_now.time().hour) == '19':
-                send_msg(bot, random.choice(cfg.bb_text))
+                send_msg(bot, rnd.choice(cfg.bb_text))
 
             # в определённое время намекать на попить
             if str(time_now.time().hour) in ('11', '15', '17', '18'):
-                send_msg(bot, random.choice(cfg.pitb_text))
+                send_msg(bot, rnd.choice(cfg.pitb_text))
         # выходные
         elif time_now.weekday() == 6:
             # напоминать про дсс
@@ -266,17 +293,17 @@ def one_hour_timer(bot):
                 chatUsers = call_all()
                 for cid, msg in chatUsers.items():
                     if msg == '':
-                        send_msg(bot, random.choice(cfg.dss_text), cid)
+                        send_msg(bot, rnd.choice(cfg.dss_text), cid)
                     else:
-                        send_msg(bot, msg + random.choice(cfg.dss_text), cid)
+                        send_msg(bot, msg + rnd.choice(cfg.dss_text), cid)
 
             # поставить таймер на воронкова
             if str(time_now.time().hour) == '23':
                 # оставляем небольшой запас времени на вычисления
                 # 1 минута и 10 секунд
-                hh = random.randint(1, 119)
-                mm = random.randint(1, 58)
-                ss = random.randint(0, 50)
+                hh = rnd.randint(1, 119)
+                mm = rnd.randint(1, 58)
+                ss = rnd.randint(0, 50)
 
                 # вычисляем дату исполнения
                 delta = datetime.timedelta(hours=hh, minutes=mm, seconds=ss)
@@ -285,7 +312,7 @@ def one_hour_timer(bot):
                 for cid in cfg.subscribed_chats:
                     users = db.sql_exec(db.sel_all_text, [cid])
                     if users != []:
-                        call_user = random.choice(users)[1]
+                        call_user = rnd.choice(users)[1]
 
                         # добавляем строку воронкова в метаданные для каждого чата
                         db.sql_exec(db.ins_operation_meta_text,
