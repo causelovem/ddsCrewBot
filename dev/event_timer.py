@@ -41,9 +41,11 @@ def call_all(query=db.sel_all_text, chat_id=None):
 def send_msg(bot, msg, cid=None):
     if cid is None:
         for chat_id in cfg.subscribed_chats:
-            bot.send_message(chat_id, msg, parse_mode='Markdown')
+            # bot.send_message(chat_id, msg, parse_mode='Markdown')
+            bot.send_message(chat_id, msg)
     else:
-        bot.send_message(cid, msg, parse_mode='Markdown')
+        # bot.send_message(cid, msg, parse_mode='Markdown')
+        bot.send_message(cid, msg)
 
 
 @cfg.loglog(command='check_metadata', type='bot')
