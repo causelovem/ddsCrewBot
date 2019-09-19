@@ -189,7 +189,8 @@ def dinner_timer(bot, chat_id):
         if msg == '':
             print('Чат отписался от рассылки, сообщение не отправлено; CHAT_ID = ' + str(cid))
         else:
-            send_msg(bot, '{}{}{}*{}*'.format(msg, rnd.choice(cfg.dinner_notif_text), rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
+            # send_msg(bot, '{}{}{}*{}*'.format(msg, rnd.choice(cfg.dinner_notif_text), rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
+            send_msg(bot, '{}{}{}{}'.format(msg, rnd.choice(cfg.dinner_notif_text), rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
 
 
 @cfg.loglog(command='one_hour_timer', type='bot')
@@ -283,10 +284,12 @@ def one_hour_timer(bot):
 
                     if msg == '':
                         # send_msg(bot, rnd.choice(cfg.dinner_text) + '*' + cfg.show_din_time + '*', cid)
-                        send_msg(bot, '{}*{}*'.format(rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
+                        # send_msg(bot, '{}*{}*'.format(rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
+                        send_msg(bot, '{}{}'.format(rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
                     else:
                         # send_msg(bot, msg + rnd.choice(cfg.dinner_text) + '*' + cfg.show_din_time + '*', cid)
-                        send_msg(bot, '{}{}*{}*'.format(msg, rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
+                        # send_msg(bot, '{}{}*{}*'.format(msg, rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
+                        send_msg(bot, '{}{}{}'.format(msg, rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
                     # сохраняем историю голосования
                     db.sql_exec(db.colect_election_hist_text, [str(time_now.date())])
                     # обнуляем время голосования
