@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import config as cfg
 import text_processing as tp
-import mumu
+#import mumu
 import telebot
 import time
 import datetime
@@ -120,19 +120,19 @@ def send_welcome(message):
 
 
 # меню в муму
-@bot.message_handler(commands=['chto_v_mumu'])
-@cfg.loglog(command='chto_v_mumu', type='message')
-@retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
-def send_mumu(message):
-    cid = message.chat.id
-    bot.send_chat_action(cid, 'typing')
-    week_day = datetime.datetime.today().weekday()
-    lunches = mumu.lunches(week_day)
+# @bot.message_handler(commands=['chto_v_mumu'])
+# @cfg.loglog(command='chto_v_mumu', type='message')
+# @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
+# def send_mumu(message):
+    # cid = message.chat.id
+    # bot.send_chat_action(cid, 'typing')
+    # week_day = datetime.datetime.today().weekday()
+    # lunches = mumu.lunches(week_day)
 
-    bot.send_message(cid, lunches[0][0])
-    bot.send_message(cid, lunches[0][1])
-    bot.send_message(cid, lunches[1][0])
-    bot.send_message(cid, lunches[1][1])
+    # bot.send_message(cid, lunches[0][0])
+    # bot.send_message(cid, lunches[0][1])
+    # bot.send_message(cid, lunches[1][0])
+    # bot.send_message(cid, lunches[1][1])
 
 
 # регистрируем человека в списке участников чата по его запросу
