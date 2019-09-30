@@ -488,7 +488,7 @@ def get_sticker(message):
 # раскомментировать, чтобы узнать file_id стикера
 @bot.message_handler()
 def get_json(message):
-    y = json.loads(message)
+    y = len(message) + " " + message[0]
     bot.reply_to(message, str(y))
 
 @bot.message_handler(content_types=["text"])
