@@ -10,6 +10,7 @@ import random
 import event_timer as evt
 import adminId
 import retrying
+import json
 
 random.seed(time.clock())
 
@@ -478,11 +479,17 @@ def meme(message):
 
 
 # раскомментировать, чтобы узнать file_id стикера
-# @bot.message_handler(content_types=["sticker"])
-# def get_sticker(message):
-#     print(message.sticker.file_id)
-#     cid = message.chat.id
-#     bot.send_sticker(cid, random.choice(cfg.sticker_var))
+@bot.message_handler(content_types=["sticker"])
+def get_sticker(message):
+    bot.reply_to(message, str(message.sticker.file_id))
+    #cid = message.chat.id
+    #bot.send_sticker(cid, random.choice(cfg.sticker_var))
+
+# раскомментировать, чтобы узнать file_id стикера
+@bot.message_handler()
+def get_json(message):
+    y = json.loads(message)
+    bot.reply_to(message, str(y))
 
 @bot.message_handler(content_types=["text"])
 @cfg.loglog(command='text_parser', type='message')
