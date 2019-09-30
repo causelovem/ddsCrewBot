@@ -110,6 +110,10 @@ def telegram_polling():
         print('try...')
         telegram_polling()
 
+# get json
+@bot.message_handler(func=lambda m: True)
+def get_json(message):
+    bot.reply_to(message, str(message))
 
 # приветствие
 @bot.message_handler(commands=['start', 'help'])
@@ -484,11 +488,6 @@ def get_sticker(message):
     bot.reply_to(message, str(message.sticker.file_id))
     #cid = message.chat.id
     #bot.send_sticker(cid, random.choice(cfg.sticker_var))
-
-# раскомментировать, чтобы узнать file_id стикера
-@bot.message_handler()
-def get_json(message):
-    bot.reply_to(message, str(message))
 
 @bot.message_handler(content_types=["text"])
 @cfg.loglog(command='text_parser', type='message')
