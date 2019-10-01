@@ -10,7 +10,6 @@ import random
 import event_timer as evt
 import adminId
 import retrying
-import json
 
 random.seed(time.clock())
 
@@ -110,10 +109,6 @@ def telegram_polling():
         print('try...')
         telegram_polling()
 
-# get json
-@bot.message_handler(content_types=["text", "audio", "document", "photo", "sticker", "video", "video_note", "voice"])
-def get_json(message):
-    bot.reply_to(message, str(message))
 
 # приветствие
 @bot.message_handler(commands=['start', 'help'])
@@ -123,13 +118,6 @@ def send_welcome(message):
     cid = message.chat.id
     bot.send_message(cid, cfg.hello_msg)
 
-# раскомментировать, чтобы узнать file_id фотографии
-# @bot.message_handler(content_types=["photo"])
-# def get_photo(message):
-#     # print(message)
-#     # print(str(message.json['photo']))
-#     print(message.json['photo'][2]['file_id'])
-#     cid = message.chat.id
 
 # меню в муму
 # @bot.message_handler(commands=['chto_v_mumu'])
@@ -480,12 +468,31 @@ def meme(message):
             bot.send_message(cid, mem[0][3])
 
 
+# раскомментировать, чтобы узнать file_id фотографии
+# @bot.message_handler(content_types=["photo"])
+# def get_photo(message):
+#     # print(message)
+#     # print(str(message.json['photo']))
+#     print(message.json['photo'][2]['file_id'])
+#     cid = message.chat.id
+
+
 # раскомментировать, чтобы узнать file_id стикера
-@bot.message_handler(content_types=["sticker"])
-def get_sticker(message):
-    bot.reply_to(message, str(message.sticker.file_id))
-    #cid = message.chat.id
-    #bot.send_sticker(cid, random.choice(cfg.sticker_var))
+# @bot.message_handler(content_types=["sticker"])
+# def get_sticker(message):
+#     print(message.sticker.file_id)
+#     cid = message.chat.id
+#     bot.send_sticker(cid, random.choice(cfg.sticker_var))
+
+# nsfw
+@bot.message_handler(commands=["nsfw"], content_types=["photo", "video"])
+@cfg.loglog(command='nsfw', type='message')
+def nsfw(message):
+    # print(message)
+    # print(str(message.json['photo']))
+    #print(message.json['photo'][2]['file_id'])
+    cid = message.chat.id
+    bot.send_message(cid, message.json['caption'])
 
 @bot.message_handler(content_types=["text"])
 @cfg.loglog(command='text_parser', type='message')
