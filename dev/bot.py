@@ -111,7 +111,7 @@ def telegram_polling():
         telegram_polling()
 
 # get json
-@bot.message_handler(func=lambda m: True)
+@bot.message_handler(content_types=["text", "audio", "document", "photo", "sticker", "video", "video_note", "voice"])
 def get_json(message):
     bot.reply_to(message, str(message))
 
@@ -123,6 +123,13 @@ def send_welcome(message):
     cid = message.chat.id
     bot.send_message(cid, cfg.hello_msg)
 
+# раскомментировать, чтобы узнать file_id фотографии
+# @bot.message_handler(content_types=["photo"])
+# def get_photo(message):
+#     # print(message)
+#     # print(str(message.json['photo']))
+#     print(message.json['photo'][2]['file_id'])
+#     cid = message.chat.id
 
 # меню в муму
 # @bot.message_handler(commands=['chto_v_mumu'])
@@ -471,15 +478,6 @@ def meme(message):
             bot.send_message(cid, 'Мем "{}" не существует в вашем чате!'.format(meme_query[-1].lower()))
         else:
             bot.send_message(cid, mem[0][3])
-
-
-# раскомментировать, чтобы узнать file_id фотографии
-# @bot.message_handler(content_types=["photo"])
-# def get_photo(message):
-#     # print(message)
-#     # print(str(message.json['photo']))
-#     print(message.json['photo'][2]['file_id'])
-#     cid = message.chat.id
 
 
 # раскомментировать, чтобы узнать file_id стикера
