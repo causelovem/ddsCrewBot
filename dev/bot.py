@@ -119,7 +119,7 @@ def send_welcome(message):
     bot.send_message(cid, cfg.hello_msg)
 
 
-# меню в муму
+# # меню в муму
 # @bot.message_handler(commands=['chto_v_mumu'])
 # @cfg.loglog(command='chto_v_mumu', type='message')
 # @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
