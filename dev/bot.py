@@ -500,9 +500,12 @@ def nsfw_text(message):
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def nsfw_caption(message):
     cid = message.chat.id
-    if message.json['caption'].find('/nsfw') >= 0:
-        bot.send_sticker(cid, 'CAADAgADSgADCvzCBT4D4LGJM21JFgQ')
-        bot.send_sticker(cid, 'CAADAgADXwADCvzCBagU3QxA1vSQFgQ')
+    try:
+        if message.json['caption'].find('/nsfw') >= 0:
+            bot.send_sticker(cid, 'CAADAgADSgADCvzCBT4D4LGJM21JFgQ')
+            bot.send_sticker(cid, 'CAADAgADXwADCvzCBagU3QxA1vSQFgQ')
+    except KeyError:
+        pass
 
 @bot.message_handler(content_types=["text"])
 @cfg.loglog(command='text_parser', type='message')
