@@ -478,10 +478,10 @@ def meme(message):
 
 
 # раскомментировать, чтобы узнать file_id стикера
-@bot.message_handler(content_types=["sticker"])
-def get_sticker(message):
-    #print(message.sticker.file_id)
-    bot.reply_to(message, str(message.sticker.file_id))
+#@bot.message_handler(content_types=["sticker"])
+#def get_sticker(message):
+#    print(message.sticker.file_id)
+#    bot.reply_to(message, str(message.sticker.file_id))
 
 # nsfw command
 @bot.message_handler(commands=['nsfw'])
@@ -489,10 +489,10 @@ def get_sticker(message):
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def nsfw_text(message):
     cid = message.chat.id
-    bot.send_sticker(cid, 'CAADAgADSgADCvzCBT4D4LGJM21JFgQ')
-    bot.send_sticker(cid, 'CAADAgADXwADCvzCBagU3QxA1vSQFgQ')
+    bot.send_sticker(cid, random.choice(cfg.sticker_nsfw))
+    bot.send_message(cid, "!!!\nNOT\nSAFE\nFOR\nWORK\n!!!\nNOT\nSAFE\nFOR\nWORK\n!!!")
+    bot.send_sticker(cid, random.choice(cfg.sticker_nsfw))
 
-#random.choice(cfg.sticker_var)
 # nsfw in photo/video
 @bot.message_handler(content_types=["photo", "video"])
 @cfg.loglog(command='nsfw', type='message')
@@ -500,9 +500,10 @@ def nsfw_text(message):
 def nsfw_caption(message):
     cid = message.chat.id
     try:
-        if message.json['caption'].find('/nsfw') >= 0:
-            bot.send_sticker(cid, 'CAADAgADSgADCvzCBT4D4LGJM21JFgQ')
-            bot.send_sticker(cid, 'CAADAgADXwADCvzCBagU3QxA1vSQFgQ')
+        if message.json['caption'].find('nsfw') >= 0:
+            bot.send_sticker(cid, random.choice(cfg.sticker_nsfw))
+            bot.send_message(cid, "!!!\nNOT\nSAFE\nFOR\nWORK\n!!!\nNOT\nSAFE\nFOR\nWORK\n!!!")
+            bot.send_sticker(cid, random.choice(cfg.sticker_nsfw))
     except KeyError:
         pass
 

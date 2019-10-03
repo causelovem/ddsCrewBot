@@ -113,6 +113,9 @@ sticker_var = ['CAADBAADcAAD-OAEAsKXeIPkd1o3Ag', 'CAADAgADAgADwXKkBLMxNUOXvJrUAg
                'CAADAgADAQADwXKkBKKoPDv9KrHpAg', 'CAADAgADBwADwXKkBDaH1tzzKIZdAg',
                'CAADAgADAwADwXKkBDjiVNM0pYEPAg']
 
+sticker_nsfw = ['CAADAgADDwIAAnELQgUswU-6Q5RnnRYE', 'CAADAgADFwADPR6-DdUKOy0QNzy9FgQ',
+                'CAADAgADSgADCvzCBT4D4LGJM21JFgQ', 'CAADAgADXwADCvzCBagU3QxA1vSQFgQ']
+
 # прекомандный текст
 precomand_text = ['Легко!', 'Пожалуйста!', 'Запросто!', 'Ложись!', 'Лови!', 'Конечно!']
 
