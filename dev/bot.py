@@ -485,12 +485,13 @@ def meme(message):
 #     bot.send_sticker(cid, random.choice(cfg.sticker_var))
 
 # nsfw
-@bot.message_handler(commands=["nsfw"], content_types=["photo", "video"])
+@bot.message_handler(commands=["nsfw"], content_types=["text","photo", "video"])
 @cfg.loglog(command='nsfw', type='message')
 def nsfw(message):
     # print(message)
     # print(str(message.json['photo']))
     #print(message.json['photo'][2]['file_id'])
+    print("1")
     cid = message.chat.id
     bot.send_message(cid, message.json['caption'])
 
