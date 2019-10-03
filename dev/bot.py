@@ -485,7 +485,8 @@ def meme(message):
 #     bot.send_sticker(cid, random.choice(cfg.sticker_var))
 
 # nsfw
-@bot.message_handler(commands=["nsfw"], content_types=["text","photo", "video"])
+#commands=["nsfw"], 
+@bot.message_handler(content_types=["photo", "video"])
 @cfg.loglog(command='nsfw', type='message')
 def nsfw(message):
     # print(message)
