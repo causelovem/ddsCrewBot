@@ -478,11 +478,11 @@ def meme(message):
 
 
 # раскомментировать, чтобы узнать file_id стикера
-# @bot.message_handler(content_types=["sticker"])
-# def get_sticker(message):
-#     print(message.sticker.file_id)
-#     cid = message.chat.id
-#     bot.send_sticker(cid, random.choice(cfg.sticker_var))
+@bot.message_handler(content_types=["sticker"])
+def get_sticker(message):
+    #print(message.sticker.file_id)
+    cid = message.chat.id
+    bot.send_sticker(cid, message.sticker.file_id)
 
 # nsfw command
 @bot.message_handler(commands=['nsfw'])
@@ -493,8 +493,8 @@ def nsfw_text(message):
     bot.send_sticker(cid, 'CAADAgADSgADCvzCBT4D4LGJM21JFgQ')
     bot.send_sticker(cid, 'CAADAgADXwADCvzCBagU3QxA1vSQFgQ')
 
+#random.choice(cfg.sticker_var)
 # nsfw in photo/video
-#commands=["nsfw"], 
 @bot.message_handler(content_types=["photo", "video"])
 @cfg.loglog(command='nsfw', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
