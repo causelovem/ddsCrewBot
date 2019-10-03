@@ -482,7 +482,7 @@ def meme(message):
 def get_sticker(message):
     #print(message.sticker.file_id)
     cid = message.chat.id
-    bot.send_sticker(cid, message.sticker.file_id)
+    bot.reply_to(cid, message.sticker.file_id)
 
 # nsfw command
 @bot.message_handler(commands=['nsfw'])
