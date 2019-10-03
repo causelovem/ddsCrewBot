@@ -489,9 +489,11 @@ def meme(message):
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def nsfw_text(message):
     cid = message.chat.id
+    bot.send_sticker(cid, 'CAADAgADSgADCvzCBT4D4LGJM21JFgQ')
+    bot.send_message(cid, "!!! NOT SAFE FOR WORK !!!")
     bot.send_sticker(cid, random.choice(cfg.sticker_nsfw))
-    bot.send_message(cid, "!!!\nNOT\nSAFE\nFOR\nWORK\n!!!\nNOT\nSAFE\nFOR\nWORK\n!!!")
-    bot.send_sticker(cid, random.choice(cfg.sticker_nsfw))
+    bot.send_message(cid, "!!! NOT SAFE FOR WORK !!!")    
+    bot.send_sticker(cid, 'CAADAgADXwADCvzCBagU3QxA1vSQFgQ')
 
 # nsfw in photo/video
 @bot.message_handler(content_types=["photo", "video"])
@@ -501,11 +503,13 @@ def nsfw_caption(message):
     cid = message.chat.id
     try:
         if message.json['caption'].find('nsfw') >= 0:
+            bot.send_sticker(cid, 'CAADAgADSgADCvzCBT4D4LGJM21JFgQ')
+            bot.send_message(cid, "!!! NOT SAFE FOR WORK !!!")
             bot.send_sticker(cid, random.choice(cfg.sticker_nsfw))
-            bot.send_message(cid, "!!!\nNOT\nSAFE\nFOR\nWORK\n!!!\nNOT\nSAFE\nFOR\nWORK\n!!!")
-            bot.send_sticker(cid, random.choice(cfg.sticker_nsfw))
+            bot.send_message(cid, "!!! NOT SAFE FOR WORK !!!")    
+            bot.send_sticker(cid, 'CAADAgADXwADCvzCBagU3QxA1vSQFgQ')
     except KeyError:
-        pass
+        print ('NSFW not triggered: media file had no caption')
 
 @bot.message_handler(content_types=["text"])
 @cfg.loglog(command='text_parser', type='message')
