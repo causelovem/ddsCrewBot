@@ -485,11 +485,11 @@ def meme(message):
 
 #nsfw print function
 def nsfw_print(message):
-    bot.send_sticker(message.chat.id, cfg.sticker_dog_left)
+    bot.send_sticker(message.chat.id, cfg.sticker_dog_left[0])
     bot.send_message(message.chat.id, "!!! NOT SAFE FOR WORK !!!")
     bot.send_sticker(message.chat.id, random.choice(cfg.sticker_nsfw))
     bot.send_message(message.chat.id, "!!! NOT SAFE FOR WORK !!!")    
-    bot.send_sticker(message.chat.id, cfg.sticker_dog_right)
+    bot.send_sticker(message.chat.id, cfg.sticker_dog_right[0])
 
 # nsfw command
 @bot.message_handler(commands=['nsfw'])
