@@ -23,6 +23,7 @@ hello_msg = '''Привет! Я бот для чата DDS. Если тебе э
 /meme NAME - показать мем NAME
 /meme_add link NAME - добавить мем в чат (только ссылки на мемы)
 /meme_del NAME - удалить мем из чата
+/nsfw - поднимает потенциально непристойное сообщение наверх, чтобы его не было видно
 /subscribe - подписаться на рассылку @all
 /unsubscribe - отписаться от рассылки @all
 /admin_subscribe_chat - подписать чат на чтение сообщений ботом и рассылки уведомлений
@@ -113,14 +114,14 @@ sticker_var = ['CAADBAADcAAD-OAEAsKXeIPkd1o3Ag', 'CAADAgADAgADwXKkBLMxNUOXvJrUAg
                'CAADAgADAQADwXKkBKKoPDv9KrHpAg', 'CAADAgADBwADwXKkBDaH1tzzKIZdAg',
                'CAADAgADAwADwXKkBDjiVNM0pYEPAg']
 
+# стикер бегущая собака (налево) (nsfw начало)
+sticker_dog_left = 'CAADAgADSgADCvzCBT4D4LGJM21JFgQ'
+
+# стикер бегущая собака (направо) (nsfw конец)
+sticker_dog_right = 'CAADAgADXwADCvzCBagU3QxA1vSQFgQ'
+
 # список стикеров для nsfw (середина)
 sticker_nsfw = ['CAADAgADDwIAAnELQgUswU-6Q5RnnRYE', 'CAADAgADFwADPR6-DdUKOy0QNzy9FgQ']
-
-# список стикеров для nsfw (начало)
-sticker_dog_left = ['CAADAgADSgADCvzCBT4D4LGJM21JFgQ']
-
-# список стикеров для nsfw (конец)
-sticker_dog_right = ['CAADAgADXwADCvzCBagU3QxA1vSQFgQ']
 
 # прекомандный текст
 precomand_text = ['Легко!', 'Пожалуйста!', 'Запросто!', 'Ложись!', 'Лови!', 'Конечно!']
