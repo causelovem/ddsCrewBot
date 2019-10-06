@@ -481,8 +481,31 @@ def meme(message):
 # @bot.message_handler(content_types=["sticker"])
 # def get_sticker(message):
 #     print(message.sticker.file_id)
-#     cid = message.chat.id
-#     bot.send_sticker(cid, random.choice(cfg.sticker_var))
+#     bot.reply_to(message, str(message.sticker.file_id))
+
+#nsfw print function
+def nsfw_print(message):
+    bot.send_sticker(message.chat.id, cfg.sticker_dog_left[0])
+    bot.send_message(message.chat.id, "!!! NOT SAFE FOR WORK !!!")
+    bot.send_sticker(message.chat.id, random.choice(cfg.sticker_nsfw))
+    bot.send_message(message.chat.id, "!!! NOT SAFE FOR WORK !!!")    
+    bot.send_sticker(message.chat.id, cfg.sticker_dog_right[0])
+
+# nsfw command
+@bot.message_handler(commands=['nsfw'])
+@cfg.loglog(command='nsfw', type='message')
+@retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
+def nsfw_text(message):
+    nsfw_print(message)
+
+# nsfw in photo/video
+@bot.message_handler(content_types=["photo", "video"])
+@cfg.loglog(command='nsfw', type='message')
+@retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
+def nsfw_caption(message):
+    if message.caption is not None:
+        if message.caption.find('/nsfw'):
+            nsfw_print(message)
 
 @bot.message_handler(content_types=["text"])
 @cfg.loglog(command='text_parser', type='message')

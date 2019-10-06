@@ -113,6 +113,15 @@ sticker_var = ['CAADBAADcAAD-OAEAsKXeIPkd1o3Ag', 'CAADAgADAgADwXKkBLMxNUOXvJrUAg
                'CAADAgADAQADwXKkBKKoPDv9KrHpAg', 'CAADAgADBwADwXKkBDaH1tzzKIZdAg',
                'CAADAgADAwADwXKkBDjiVNM0pYEPAg']
 
+# список стикеров для nsfw (середина)
+sticker_nsfw = ['CAADAgADDwIAAnELQgUswU-6Q5RnnRYE', 'CAADAgADFwADPR6-DdUKOy0QNzy9FgQ']
+
+# список стикеров для nsfw (начало)
+sticker_dog_left = ['CAADAgADSgADCvzCBT4D4LGJM21JFgQ']
+
+# список стикеров для nsfw (конец)
+sticker_dog_right = ['CAADAgADXwADCvzCBagU3QxA1vSQFgQ']
+
 # прекомандный текст
 precomand_text = ['Легко!', 'Пожалуйста!', 'Запросто!', 'Ложись!', 'Лови!', 'Конечно!']
 
