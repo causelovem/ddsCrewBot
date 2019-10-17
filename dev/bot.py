@@ -389,32 +389,67 @@ def penalty(message):
             bot.send_message(cid, random.choice(cfg.penalty_empty_text))
 
 
+def meme_add_processing(query, cid):
+    bot.send_chat_action(cid, 'typing')
+
+    mem = db.sql_exec(db.sel_meme_text, [cid, query[-1].lower()])
+
+    if len(mem) != 0:
+        bot.send_message(cid, cfg.meme_dict_text['add_exist_error'].format(query[-1].lower()))
+        return
+
+    # /meme_add /https.... meme_name
+    if len(query) == 3:
+        res = db.sql_exec(db.ins_meme_text, [cid, query[-1].strip(), 'lnk', query[1].strip()])
+        if res != 'ERROR!':
+            bot.send_message(cid, cfg.meme_dict_text['add_success'].format(query[-1]))
+        else:
+            bot.send_message(cid, cfg.meme_dict_text['add_unknown_error'])
+    else:
+        bot.send_message(cid, cfg.meme_dict_text['add_query_error'])
+
+
 # добавить мем
 @bot.message_handler(commands=['meme_add'])
 @cfg.loglog(command='meme_add', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def meme_add(message):
-    cid = message.chat.id
-    # user = message.from_user.id
+    meme_del_processing(message.text.strip().split(), message.chat.id)
+    # cid = message.chat.id
+    # # user = message.from_user.id
+    # bot.send_chat_action(cid, 'typing')
+
+    # meme_query = message.text.strip().split()
+    # mem = db.sql_exec(db.sel_meme_text, [cid, meme_query[-1].lower()])
+
+    # if len(mem) != 0:
+    #     bot.send_message(cid, 'Мем "{}" в вашем чате уже существует!'.format(meme_query[-1].lower()))
+    #     return
+
+    # # /meme_add /https.... meme_name
+    # if len(meme_query) == 3:
+    #     res = db.sql_exec(db.ins_meme_text, [cid, meme_query[-1].strip(), 'lnk', meme_query[1].strip()])
+    #     if res != 'ERROR!':
+    #         bot.send_message(cid, 'Добавил мем "{}" в ваш чат!\nВы можете показать мем с помощью команды'.format(meme_query[-1]) +
+    #                          '\n/meme {}'.format(meme_query[-1]))
+    #     else:
+    #         bot.send_message(cid, 'Какая-то ошибка при добовлении мема... Пусть розробочик посмотит в логи!')
+    # else:
+    #     bot.send_message(cid, 'Какая-то ошибка при добовлении мема.\nНужно указать только ссылку и название.')
+
+
+# функция удаления мема
+def meme_del_processing(query, cid):
     bot.send_chat_action(cid, 'typing')
 
-    meme_query = message.text.strip().split()
-    mem = db.sql_exec(db.sel_meme_text, [cid, meme_query[-1].lower()])
-
-    if len(mem) != 0:
-        bot.send_message(cid, 'Мем "{}" в вашем чате уже существует!'.format(meme_query[-1].lower()))
-        return
-
-    # /meme_add /https.... meme_name
-    if len(meme_query) == 3:
-        res = db.sql_exec(db.ins_meme_text, [cid, meme_query[-1].strip(), 'lnk', meme_query[1].strip()])
-        if res != 'ERROR!':
-            bot.send_message(cid, 'Добавил мем "{}" в ваш чат!\nВы можете показать мем с помощью команды'.format(meme_query[-1]) +
-                             '\n/meme {}'.format(meme_query[-1]))
-        else:
-            bot.send_message(cid, 'Какая-то ошибка при добовлении мема... Пусть розробочик посмотит в логи!')
+    if len(query) != 2:
+        bot.send_message(cid, cfg.meme_dict_text['del_query_error'])
     else:
-        bot.send_message(cid, 'Какая-то ошибка при добовлении мема.\nНужно указать только ссылку и название.')
+        res = db.sql_exec(db.del_meme_text, [cid, query[-1].lower()])
+        if res != 'ERROR!':
+            bot.send_message(cid, cfg.meme_dict_text['del_success'])
+        else:
+            bot.send_message(cid, cfg.meme_dict_text['del_unknown_error'])
 
 
 # удалить мем
@@ -422,19 +457,19 @@ def meme_add(message):
 @cfg.loglog(command='meme_del', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def meme_del(message):
-    cid = message.chat.id
-    bot.send_chat_action(cid, 'typing')
+    meme_del_processing(message.text.strip().split(), message.chat.id)
+    # cid = message.chat.id
+    # meme_query = message.text.strip().split()
+    # bot.send_chat_action(cid, 'typing')
 
-    meme_query = message.text.strip().split()
-
-    if len(meme_query) != 2:
-        bot.send_message(cid, 'Для удаления мне нужно только название!')
-    else:
-        res = db.sql_exec(db.del_meme_text, [cid, meme_query[-1].lower()])
-        if res != 'ERROR!':
-            bot.send_message(cid, 'Если такой мем и был в вашем чате, то он удалён!')
-        else:
-            bot.send_message(cid, 'Какая-то ошибка при удалении мема... Пусть розробочик посмотрит в логи!')
+    # if len(meme_query) != 2:
+    #     bot.send_message(cid, 'Для удаления мне нужно только название!')
+    # else:
+    #     res = db.sql_exec(db.del_meme_text, [cid, meme_query[-1].lower()])
+    #     if res != 'ERROR!':
+    #         bot.send_message(cid, 'Если такой мем и был в вашем чате, то он удалён!')
+    #     else:
+    #         bot.send_message(cid, 'Какая-то ошибка при удалении мема... Пусть розробочик посмотрит в логи!')
 
 
 # мемы
@@ -484,31 +519,31 @@ def meme(message):
 #     bot.reply_to(message, str(message.sticker.file_id))
 
 
-# nsfw print function
-def nsfw_print(message):
-    bot.send_sticker(message.chat.id, cfg.sticker_dog_left)
-    bot.send_message(message.chat.id, '!!! NOT SAFE FOR WORK !!!\n' * 3)
-    bot.send_sticker(message.chat.id, random.choice(cfg.sticker_nsfw))
-    bot.send_message(message.chat.id, '!!! NOT SAFE FOR WORK !!!\n' * 3)
-    bot.send_sticker(message.chat.id, cfg.sticker_dog_right)
+# функция вывода nsfw
+def nsfw_print(cid):
+    bot.send_sticker(cid, cfg.sticker_dog_left)
+    bot.send_message(cid, '!!! NOT SAFE FOR WORK !!!\n' * 3)
+    bot.send_sticker(cid, random.choice(cfg.sticker_nsfw))
+    bot.send_message(cid, '!!! NOT SAFE FOR WORK !!!\n' * 3)
+    bot.send_sticker(cid, cfg.sticker_dog_right)
 
 
-# nsfw command
+# команда nsfw (скрыть с экрана нежелательный контент)
 @bot.message_handler(commands=['nsfw'])
-@cfg.loglog(command='nsfw_text', type='message')
+@cfg.loglog(command='nsfw', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
-def nsfw_text(message):
-    nsfw_print(message)
+def nsfw(message):
+    nsfw_print(message.chat.id)
 
 
-# nsfw in photo/video
+# обработка caption у фото и видео
 @bot.message_handler(content_types=["photo", "video"])
-@cfg.loglog(command='nsfw_caption', type='message')
+@cfg.loglog(command='media_caption', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
-def nsfw_caption(message):
+def media_caption(message):
     if message.caption is not None:
         if message.caption.find('/nsfw') != -1:
-            nsfw_print(message)
+            nsfw_print(message.chat.id)
 
 
 @bot.message_handler(content_types=["text"])
