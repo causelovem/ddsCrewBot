@@ -160,6 +160,10 @@ ins_meme_text = """INSERT INTO MEME
 
 del_meme_text = """DELETE FROM MEME WHERE chat_id = ? AND name = ?;"""
 
+sel_max_meme_id_text = """SELECT coalesce(max(id_rk), 0) FROM METADATA
+                          WHERE chat_id = ?
+                          group by chat_id"""
+
 
 # создать таблицу
 @cfg.loglog(command='create_table', type='ct')

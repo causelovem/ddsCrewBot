@@ -389,8 +389,13 @@ def penalty(message):
             bot.send_message(cid, random.choice(cfg.penalty_empty_text))
 
 
-def meme_add_processing(query, cid):
+# функция добавления мема
+def meme_add_processing(message, meme_type):
+    # /meme_add /https... meme_name | /meme_add meme_name
+    cid = message.chat.id
     bot.send_chat_action(cid, 'typing')
+
+    query = message.text.strip().split()
 
     mem = db.sql_exec(db.sel_meme_text, [cid, query[-1].lower()])
 
@@ -398,15 +403,33 @@ def meme_add_processing(query, cid):
         bot.send_message(cid, cfg.meme_dict_text['add_exist_error'].format(query[-1].lower()))
         return
 
-    # /meme_add /https.... meme_name
-    if len(query) == 3:
-        res = db.sql_exec(db.ins_meme_text, [cid, query[-1].strip(), 'lnk', query[1].strip()])
-        if res != 'ERROR!':
-            bot.send_message(cid, cfg.meme_dict_text['add_success'].format(query[-1]))
+    res = None
+    meme_name = query[-1].strip().lower()
+    curr_max_meme_id = int(db.sql_exec(db.sel_max_meme_id_text, [cid])[0]) + 1
+
+    if meme_type == 'photo':
+        if len(query) == 2:
+            res = db.sql_exec(db.ins_meme_text, [curr_max_meme_id, cid, meme_name, meme_type,
+                                                 message.json['photo'][-1]['file_id']])
         else:
-            bot.send_message(cid, cfg.meme_dict_text['add_unknown_error'])
+            bot.send_message(cid, cfg.meme_dict_text['add_media_query_error'])
+    elif meme_type == 'video':
+        if len(query) == 2:
+            res = db.sql_exec(db.ins_meme_text, [curr_max_meme_id, cid, meme_name, meme_type,
+                                                 message.json['video']['file_id']])
+        else:
+            bot.send_message(cid, cfg.meme_dict_text['add_media_query_error'])
+    elif meme_type == 'lnk':
+        if len(query) == 3:
+            res = db.sql_exec(db.ins_meme_text, [curr_max_meme_id, cid, meme_name, 'lnk',
+                                                 query[1].strip()])
+        else:
+            bot.send_message(cid, cfg.meme_dict_text['add_lnk_query_error'])
+
+    if res != 'ERROR!':
+        bot.send_message(cid, cfg.meme_dict_text['add_success'].format(meme_name))
     else:
-        bot.send_message(cid, cfg.meme_dict_text['add_query_error'])
+        bot.send_message(cid, cfg.meme_dict_text['add_unknown_error'])
 
 
 # добавить мем
@@ -414,7 +437,7 @@ def meme_add_processing(query, cid):
 @cfg.loglog(command='meme_add', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def meme_add(message):
-    meme_del_processing(message.text.strip().split(), message.chat.id)
+    meme_add_processing(message, 'lnk')
     # cid = message.chat.id
     # # user = message.from_user.id
     # bot.send_chat_action(cid, 'typing')
@@ -504,12 +527,26 @@ def meme(message):
 
 
 # раскомментировать, чтобы узнать file_id фотографии
-# @bot.message_handler(content_types=["photo"])
-# def get_photo(message):
-#     # print(message)
-#     # print(str(message.json['photo']))
-#     print(message.json['photo'][2]['file_id'])
-#     cid = message.chat.id
+@bot.message_handler(content_types=['photo'])
+def get_photo(message):
+    print(message)
+    print(message.content_type)
+    bot.send_photo(message.chat.id, message.json['photo'][-1]['file_id'])
+    # print(str(message.json['photo']))
+    # print(message.json['photo'][2]['file_id'])
+    # cid = message.chat.id
+
+
+# раскомментировать, чтобы узнать file_id фотографии
+@bot.message_handler(content_types=['video'])
+def get_video(message):
+    print(message)
+    print(message.content_type)
+    print(message.json['video']['file_id'])
+    bot.send_video(message.chat.id, message.json['video']['file_id'])
+    # print(str(message.json['photo']))
+    # print(message.json['photo'][2]['file_id'])
+    # cid = message.chat.id
 
 
 # раскомментировать, чтобы узнать file_id стикера
@@ -537,13 +574,15 @@ def nsfw(message):
 
 
 # обработка caption у фото и видео
-@bot.message_handler(content_types=["photo", "video"])
+@bot.message_handler(content_types=['photo', 'video'])
 @cfg.loglog(command='media_caption', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def media_caption(message):
     if message.caption is not None:
         if message.caption.find('/nsfw') != -1:
             nsfw_print(message.chat.id)
+        elif message.caption.statswith('/meme_add'):
+            meme_add_processing(message, message.content_types)
 
 
 @bot.message_handler(content_types=["text"])
