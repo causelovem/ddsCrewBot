@@ -150,7 +150,11 @@ upd_operation_meta_text = """UPDATE METADATA
             SET is_success_flg = ?
             WHERE id_rk = ?"""
 
-sel_meme_text = """SELECT * FROM MEME WHERE chat_id = ? AND name = ?;"""
+sel_meme_name_text = """SELECT meme_type, meme_value FROM MEME WHERE chat_id = ? AND meme_name = ?;"""
+
+sel_meme_id_text = """SELECT meme_type, meme_value FROM MEME WHERE chat_id = ? AND meme_id = ?;"""
+
+sel_meme_in_chat_text = """SELECT meme_id, meme_name FROM MEME WHERE chat_id = ?"""
 
 # ins_meme_text = """INSERT INTO MEME
 #             VALUES (?,?,?,?);"""
