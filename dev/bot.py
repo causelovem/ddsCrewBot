@@ -394,7 +394,12 @@ def meme_add_processing(message, meme_type):
     cid = message.chat.id
     bot.send_chat_action(cid, 'typing')
 
-    query = message.text.strip().split()
+    query = None
+    if meme_type in ('photo', 'video'):
+        query = message.caption.strip().split()
+    else:
+        query = message.text.strip().split()
+
     meme_name = query[-1].strip().lower()
 
     mem = db.sql_exec(db.sel_meme_name_text, [cid, meme_name])
@@ -403,31 +408,38 @@ def meme_add_processing(message, meme_type):
         bot.send_message(cid, cfg.meme_dict_text['add_exist_error'].format(meme_name))
         return
 
-    res = None
-    curr_max_meme_id = int(db.sql_exec(db.sel_max_meme_id_text, [cid])[0]) + 1
+    curr_max_meme_id = db.sql_exec(db.sel_max_meme_id_text, [cid])
+    if curr_max_meme_id == []:
+        curr_max_meme_id = 1
+    else:
+        curr_max_meme_id = int(curr_max_meme_id[0][0]) + 1
 
     if meme_name.isdigit() is True:
         bot.send_message(cid, cfg.meme_dict_text['add_digital_name_error'])
         return
 
+    res = None
     if meme_type == 'photo':
         if len(query) == 2:
             res = db.sql_exec(db.ins_meme_text, [curr_max_meme_id, cid, meme_name, meme_type,
                                                  message.json['photo'][-1]['file_id']])
         else:
             bot.send_message(cid, cfg.meme_dict_text['add_media_query_error'])
+            return
     elif meme_type == 'video':
         if len(query) == 2:
             res = db.sql_exec(db.ins_meme_text, [curr_max_meme_id, cid, meme_name, meme_type,
                                                  message.json['video']['file_id']])
         else:
             bot.send_message(cid, cfg.meme_dict_text['add_media_query_error'])
+            return
     elif meme_type == 'link':
         if len(query) == 3:
             res = db.sql_exec(db.ins_meme_text, [curr_max_meme_id, cid, meme_name, 'link',
                                                  query[1].strip()])
         else:
             bot.send_message(cid, cfg.meme_dict_text['add_link_query_error'])
+            return
 
     if res != 'ERROR!':
         bot.send_message(cid, cfg.meme_dict_text['add_success'].format(meme_name))
@@ -443,38 +455,25 @@ def meme_add(message):
     meme_add_processing(message, 'link')
 
 
-# # функция удаления мема
-# def meme_del_processing(query, cid):
-#     bot.send_chat_action(cid, 'typing')
-
-#     if len(query) != 2:
-#         bot.send_message(cid, cfg.meme_dict_text['del_query_error'])
-#     else:
-#         res = db.sql_exec(db.del_meme_text, [cid, query[-1].lower()])
-
-#         if res != 'ERROR!':
-#             bot.send_message(cid, cfg.meme_dict_text['del_success'])
-#         else:
-#             bot.send_message(cid, cfg.meme_dict_text['del_unknown_error'])
-
-
 # удалить мем
 @bot.message_handler(commands=['meme_del'])
 @cfg.loglog(command='meme_del', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def meme_del(message):
-    # meme_del_processing(message.text.strip().split(), message.chat.id)
-    cid = meme.chat.id
+    cid = message.chat.id
     bot.send_chat_action(cid, 'typing')
 
     query = message.text.strip().split()
 
-    bot.send_chat_action(cid, 'typing')
-
     if len(query) != 2:
         bot.send_message(cid, cfg.meme_dict_text['del_query_error'])
     else:
-        res = db.sql_exec(db.del_meme_text, [cid, query[-1].lower()])
+        meme_name = query[-1].strip().lower()
+        if meme_name.isdigit() is True:
+            bot.send_message(cid, cfg.meme_dict_text['del_digital_name_error'])
+            return
+
+        res = db.sql_exec(db.del_meme_text, [cid, meme_name])
 
         if res != 'ERROR!':
             bot.send_message(cid, cfg.meme_dict_text['del_success'])
@@ -490,9 +489,9 @@ def meme(message):
     cid = message.chat.id
     bot.send_chat_action(cid, 'typing')
 
-    meme_query = message.text.strip().split()
+    query = message.text.strip().split()
 
-    if len(meme_query) == 1:
+    if len(query) == 1:
         res = db.sql_exec(db.sel_meme_in_chat_text, [cid])
         if len(res) == 0:
             bot.send_message(cid, cfg.meme_dict_text['meme_no_memes'])
@@ -501,15 +500,16 @@ def meme(message):
             for i in res:
                 resStr += '*{}. {}*\n'.format(str(i[0]), str(i[1]))
             bot.send_message(cid, str(resStr), parse_mode='Markdown')
-    elif len(meme_query) == 2:
+    elif len(query) == 2:
+        meme_name = query[-1].strip().lower()
         mem = None
-        if meme_query[-1].lower().isdigit() is False:
-            mem = db.sql_exec(db.sel_meme_name_text, [cid, meme_query[-1].lower()])
+        if meme_name.isdigit() is False:
+            mem = db.sql_exec(db.sel_meme_name_text, [cid, meme_name])
         else:
-            mem = db.sql_exec(db.sel_meme_id_text, [cid, meme_query[-1].lower()])
+            mem = db.sql_exec(db.sel_meme_id_text, [cid, meme_name])
 
         if len(mem) == 0:
-            bot.send_message(cid, cfg.meme_dict_text['meme_no_mem_in_chat'].format(meme_query[-1].lower()))
+            bot.send_message(cid, cfg.meme_dict_text['meme_no_mem_in_chat'].format(meme_name))
         else:
             if mem[0][0] == 'photo':
                 bot.send_photo(cid, mem[0][1])
@@ -576,8 +576,8 @@ def media_caption(message):
     if message.caption is not None:
         if message.caption.find('/nsfw') != -1:
             nsfw_print(message.chat.id)
-        elif message.caption.statswith('/meme_add'):
-            meme_add_processing(message, message.content_types)
+        elif message.caption.startswith('/meme_add'):
+            meme_add_processing(message, message.content_type)
 
 
 @bot.message_handler(content_types=["text"])

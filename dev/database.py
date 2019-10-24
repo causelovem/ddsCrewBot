@@ -47,13 +47,13 @@ ct_metadata_text = """CREATE TABLE IF NOT EXISTS METADATA
             is_success_flg integer
             );"""
 
-ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
-            (
-            chat_id integer,
-            name text,
-            type text,
-            value text
-            );"""
+# ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
+#             (
+#             chat_id integer,
+#             name text,
+#             type text,
+#             value text
+#             );"""
 
 ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
             (
@@ -162,9 +162,9 @@ sel_meme_in_chat_text = """SELECT meme_id, meme_name FROM MEME WHERE chat_id = ?
 ins_meme_text = """INSERT INTO MEME
             VALUES (?,?,?,?,?);"""
 
-del_meme_text = """DELETE FROM MEME WHERE chat_id = ? AND name = ?;"""
+del_meme_text = """DELETE FROM MEME WHERE chat_id = ? AND meme_name = ?;"""
 
-sel_max_meme_id_text = """SELECT coalesce(max(id_rk), 0) FROM METADATA
+sel_max_meme_id_text = """SELECT max(meme_id) FROM MEME
                           WHERE chat_id = ?
                           group by chat_id"""
 
