@@ -162,7 +162,9 @@ sel_meme_in_chat_text = """SELECT meme_id, meme_name FROM MEME WHERE chat_id = ?
 ins_meme_text = """INSERT INTO MEME
             VALUES (?,?,?,?,?);"""
 
-del_meme_text = """DELETE FROM MEME WHERE chat_id = ? AND meme_name = ?;"""
+del_meme_name_text = """DELETE FROM MEME WHERE chat_id = ? AND meme_name = ?;"""
+
+del_meme_id_text = """DELETE FROM MEME WHERE chat_id = ? AND meme_id = ?;"""
 
 sel_max_meme_id_text = """SELECT max(meme_id) FROM MEME
                           WHERE chat_id = ?

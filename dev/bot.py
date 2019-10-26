@@ -470,10 +470,9 @@ def meme_del(message):
     else:
         meme_name = query[-1].strip().lower()
         if meme_name.isdigit() is True:
-            bot.send_message(cid, cfg.meme_dict_text['del_digital_name_error'])
-            return
-
-        res = db.sql_exec(db.del_meme_text, [cid, meme_name])
+            res = db.sql_exec(db.del_meme_id_text, [cid, meme_name])
+        else:
+            res = db.sql_exec(db.del_meme_name_text, [cid, meme_name])
 
         if res != 'ERROR!':
             bot.send_message(cid, cfg.meme_dict_text['del_success'])
