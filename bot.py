@@ -223,7 +223,7 @@ def penalty(message):
     if (len(cmd) == 3) and (cmd[1].lower() == 'cancel') and (cmd[2].isdigit()):
         # отмена штрафа
         rk = int(cmd[2])
-        meta = db.sql_exec("""SELECT * FROM METADATA WHERE id_rk = ?""", [rk])
+        meta = db.sql_exec(db.sel_meta_by_rk, [rk])
 
         if len(meta) == 0:
             bot.send_message(cid, 'Штрафа с таким номером не существует!')
@@ -289,32 +289,71 @@ def penalty(message):
             bot.send_message(cid, random.choice(cfg.penalty_empty_text))
 
 
+# функция добавления мема
+def meme_add_processing(message, meme_type):
+    # /meme_add /https... meme_name | /meme_add meme_name
+    cid = message.chat.id
+    bot.send_chat_action(cid, 'typing')
+
+    query = None
+    if meme_type in ('photo', 'video'):
+        query = message.caption.strip().split()
+    else:
+        query = message.text.strip().split()
+
+    meme_name = query[-1].strip().lower()
+
+    mem = db.sql_exec(db.sel_meme_name_text, [cid, meme_name])
+
+    if len(mem) != 0:
+        bot.send_message(cid, cfg.meme_dict_text['add_exist_error'].format(meme_name))
+        return
+
+    curr_max_meme_id = db.sql_exec(db.sel_max_meme_id_text, [cid])
+    if curr_max_meme_id == []:
+        curr_max_meme_id = 1
+    else:
+        curr_max_meme_id = int(curr_max_meme_id[0][0]) + 1
+
+    if meme_name.isdigit() is True:
+        bot.send_message(cid, cfg.meme_dict_text['add_digital_name_error'])
+        return
+
+    res = None
+    if meme_type == 'photo':
+        if len(query) == 2:
+            res = db.sql_exec(db.ins_meme_text, [curr_max_meme_id, cid, meme_name, meme_type,
+                                                 message.json['photo'][-1]['file_id']])
+        else:
+            bot.send_message(cid, cfg.meme_dict_text['add_media_query_error'])
+            return
+    elif meme_type == 'video':
+        if len(query) == 2:
+            res = db.sql_exec(db.ins_meme_text, [curr_max_meme_id, cid, meme_name, meme_type,
+                                                 message.json['video']['file_id']])
+        else:
+            bot.send_message(cid, cfg.meme_dict_text['add_media_query_error'])
+            return
+    elif meme_type == 'link':
+        if len(query) == 3:
+            res = db.sql_exec(db.ins_meme_text, [curr_max_meme_id, cid, meme_name, 'link',
+                                                 query[1].strip()])
+        else:
+            bot.send_message(cid, cfg.meme_dict_text['add_link_query_error'])
+            return
+
+    if res != 'ERROR!':
+        bot.send_message(cid, cfg.meme_dict_text['add_success'].format(meme_name))
+    else:
+        bot.send_message(cid, cfg.meme_dict_text['add_unknown_error'])
+
+
 # добавить мем
 @bot.message_handler(commands=['meme_add'])
 @cfg.loglog(command='meme_add', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def meme_add(message):
-    cid = message.chat.id
-    # user = message.from_user.id
-    bot.send_chat_action(cid, 'typing')
-
-    meme_query = message.text.strip().split()
-    mem = db.sql_exec(db.sel_meme_text, [cid, meme_query[-1].lower()])
-
-    if len(mem) != 0:
-        bot.send_message(cid, 'Мем "{}" в вашем чате уже существует!'.format(meme_query[-1].lower()))
-        return
-
-    # /meme_add /https.... meme_name
-    if len(meme_query) == 3:
-        res = db.sql_exec(db.ins_meme_text, [cid, meme_query[-1].strip(), 'lnk', meme_query[1].strip()])
-        if res != 'ERROR!':
-            bot.send_message(cid, 'Добавил мем "{}" в ваш чат!\nВы можете показать мем с помощью команды'.format(meme_query[-1]) +
-                             '\n/meme {}'.format(meme_query[-1]))
-        else:
-            bot.send_message(cid, 'Какая-то ошибка при добовлении мема... Пусть розробочик посмотит в логи!')
-    else:
-        bot.send_message(cid, 'Какая-то ошибка при добовлении мема.\nНужно указать только ссылку и название.')
+    meme_add_processing(message, 'link')
 
 
 # удалить мем
@@ -325,16 +364,24 @@ def meme_del(message):
     cid = message.chat.id
     bot.send_chat_action(cid, 'typing')
 
-    meme_query = message.text.strip().split()
+    query = message.text.strip().split()
 
-    if len(meme_query) != 2:
-        bot.send_message(cid, 'Для удаления мне нужно только название!')
+    if len(query) != 2:
+
+        bot.send_message(cid, cfg.meme_dict_text['del_query_error'])
     else:
-        res = db.sql_exec(db.del_meme_text, [cid, meme_query[-1].lower()])
-        if res != 'ERROR!':
-            bot.send_message(cid, 'Если такой мем и был в вашем чате, то он удалён!')
+        meme_name = query[-1].strip().lower()
+        if meme_name.isdigit() is True:
+            res = db.sql_exec(db.del_meme_id_text, [cid, meme_name])
         else:
-            bot.send_message(cid, 'Какая-то ошибка при удалении мема... Пусть розробочик посмотрит в логи!')
+            res = db.sql_exec(db.del_meme_name_text, [cid, meme_name])
+
+        if res != 'ERROR!':
+
+            bot.send_message(cid, cfg.meme_dict_text['del_success'])
+        else:
+
+            bot.send_message(cid, cfg.meme_dict_text['del_unknown_error'])
 
 
 # мемы
@@ -345,25 +392,41 @@ def meme(message):
     cid = message.chat.id
     bot.send_chat_action(cid, 'typing')
 
-    meme_query = message.text.strip().split()
+    query = message.text.strip().split()
 
-    if len(meme_query) == 1:
-        res = db.sql_exec("""SELECT name FROM MEME WHERE chat_id = ?""", [cid])
+    if len(query) == 1:
+
+        res = db.sql_exec(db.sel_meme_in_chat_text, [cid])
         if len(res) == 0:
-            bot.send_message(cid, 'В вашем чате нет мемов=(\nВы можете добавить их командой /meme_add!')
+
+            bot.send_message(cid, cfg.meme_dict_text['meme_no_memes'])
         else:
             resStr = 'Мемы, добавленные в ваш чат:\n'
             for i in res:
-                resStr += '*' + str(i[0]) + '*\n'
+
+                resStr += '*{}. {}*\n'.format(str(i[0]), str(i[1]))
             bot.send_message(cid, str(resStr), parse_mode='Markdown')
-    elif len(meme_query) != 2:
-        bot.send_message(cid, 'Мне нужно только название мема!')
-    else:
-        mem = db.sql_exec(db.sel_meme_text, [cid, meme_query[-1].lower()])
-        if len(mem) == 0:
-            bot.send_message(cid, 'Мем "{}" не существует в вашем чате!'.format(meme_query[-1].lower()))
+    elif len(query) == 2:
+
+        meme_name = query[-1].strip().lower()
+        mem = None
+        if meme_name.isdigit() is False:
+            mem = db.sql_exec(db.sel_meme_name_text, [cid, meme_name])
         else:
-            bot.send_message(cid, mem[0][3])
+            mem = db.sql_exec(db.sel_meme_id_text, [cid, meme_name])
+
+        if len(mem) == 0:
+
+            bot.send_message(cid, cfg.meme_dict_text['meme_no_mem_in_chat'].format(meme_name))
+        else:
+            if mem[0][0] == 'photo':
+                bot.send_photo(cid, mem[0][1])
+            elif mem[0][0] == 'video':
+                bot.send_video(cid, mem[0][1])
+            elif mem[0][0] == 'link':
+                bot.send_message(cid, mem[0][1])
+    else:
+        bot.send_message(cid, cfg.meme_dict_text['meme_query_error'])
 
 
 # раскомментировать, чтобы узнать file_id фотографии
@@ -383,31 +446,33 @@ def meme(message):
 #     bot.send_sticker(cid, random.choice(cfg.sticker_var))
 
 
-# nsfw print function
-def nsfw_print(message):
-    bot.send_sticker(message.chat.id, cfg.sticker_dog_left)
-    bot.send_message(message.chat.id, '!!! NOT SAFE FOR WORK !!!\n' * 3)
-    bot.send_sticker(message.chat.id, random.choice(cfg.sticker_nsfw))
-    bot.send_message(message.chat.id, '!!! NOT SAFE FOR WORK !!!\n' * 3)
-    bot.send_sticker(message.chat.id, cfg.sticker_dog_right)
+# функция вывода nsfw
+def nsfw_print(cid):
+    bot.send_sticker(cid, cfg.sticker_dog_left)
+    bot.send_message(cid, '!!! NOT SAFE FOR WORK !!!\n' * 3)
+    bot.send_sticker(cid, random.choice(cfg.sticker_nsfw))
+    bot.send_message(cid, '!!! NOT SAFE FOR WORK !!!\n' * 3)
+    bot.send_sticker(cid, cfg.sticker_dog_right)
 
 
-# nsfw command
+# команда nsfw (скрыть с экрана нежелательный контент)
 @bot.message_handler(commands=['nsfw'])
-@cfg.loglog(command='nsfw_text', type='message')
+@cfg.loglog(command='nsfw', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
-def nsfw_text(message):
-    nsfw_print(message)
+def nsfw(message):
+    nsfw_print(message.chat.id)
 
 
-# nsfw in photo/video
-@bot.message_handler(content_types=["photo", "video"])
-@cfg.loglog(command='nsfw_caption', type='message')
+# обработка caption у фото и видео
+@bot.message_handler(content_types=['photo', 'video'])
+@cfg.loglog(command='media_caption', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
-def nsfw_caption(message):
+def media_caption(message):
     if message.caption is not None:
         if message.caption.find('/nsfw') != -1:
-            nsfw_print(message)
+            nsfw_print(message.chat.id)
+        elif message.caption.startswith('/meme_add'):
+            meme_add_processing(message, message.content_type)
 
 
 @bot.message_handler(content_types=["text"])

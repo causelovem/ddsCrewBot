@@ -47,12 +47,21 @@ ct_metadata_text = """CREATE TABLE IF NOT EXISTS METADATA
             is_success_flg integer
             );"""
 
+# ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
+#             (
+#             chat_id integer,
+#             name text,
+#             type text,
+#             value text
+#             );"""
+
 ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
             (
+            meme_id integer,
             chat_id integer,
-            name text,
-            type text,
-            value text
+            meme_name text,
+            meme_type text,
+            meme_value text
             );"""
 
 
@@ -130,6 +139,8 @@ ins_operation_meta_text = """INSERT INTO METADATA
 
 sel_max_id_rk_meta_text = """SELECT max(id_rk) FROM METADATA"""
 
+sel_meta_by_rk = """SELECT * FROM METADATA WHERE id_rk = ?"""
+
 sel_operation_meta_text = """SELECT * FROM METADATA
             WHERE operation = ? and is_success_flg = ?"""
 
@@ -137,12 +148,25 @@ upd_operation_meta_text = """UPDATE METADATA
             SET is_success_flg = ?
             WHERE id_rk = ?"""
 
-sel_meme_text = """SELECT * FROM MEME WHERE chat_id = ? AND name = ?;"""
+sel_meme_name_text = """SELECT meme_type, meme_value FROM MEME WHERE chat_id = ? AND meme_name = ?;"""
+
+sel_meme_id_text = """SELECT meme_type, meme_value FROM MEME WHERE chat_id = ? AND meme_id = ?;"""
+
+sel_meme_in_chat_text = """SELECT meme_id, meme_name FROM MEME WHERE chat_id = ?"""
+
+# ins_meme_text = """INSERT INTO MEME
+#             VALUES (?,?,?,?);"""
 
 ins_meme_text = """INSERT INTO MEME
-            VALUES (?,?,?,?);"""
+            VALUES (?,?,?,?,?);"""
 
-del_meme_text = """DELETE FROM MEME WHERE chat_id = ? AND name = ?;"""
+del_meme_name_text = """DELETE FROM MEME WHERE chat_id = ? AND meme_name = ?;"""
+
+del_meme_id_text = """DELETE FROM MEME WHERE chat_id = ? AND meme_id = ?;"""
+
+sel_max_meme_id_text = """SELECT max(meme_id) FROM MEME
+                          WHERE chat_id = ?
+                          group by chat_id"""
 
 
 # создать таблицу
