@@ -367,7 +367,6 @@ def meme_del(message):
     query = message.text.strip().split()
 
     if len(query) != 2:
-
         bot.send_message(cid, cfg.meme_dict_text['del_query_error'])
     else:
         meme_name = query[-1].strip().lower()
@@ -377,7 +376,6 @@ def meme_del(message):
             res = db.sql_exec(db.del_meme_name_text, [cid, meme_name])
 
         if res != 'ERROR!':
-
             bot.send_message(cid, cfg.meme_dict_text['del_success'])
         else:
 
@@ -395,7 +393,6 @@ def meme(message):
     query = message.text.strip().split()
 
     if len(query) == 1:
-
         res = db.sql_exec(db.sel_meme_in_chat_text, [cid])
         if len(res) == 0:
 
@@ -407,7 +404,6 @@ def meme(message):
                 resStr += '*{}. {}*\n'.format(str(i[0]), str(i[1]))
             bot.send_message(cid, str(resStr), parse_mode='Markdown')
     elif len(query) == 2:
-
         meme_name = query[-1].strip().lower()
         mem = None
         if meme_name.isdigit() is False:
@@ -416,7 +412,6 @@ def meme(message):
             mem = db.sql_exec(db.sel_meme_id_text, [cid, meme_name])
 
         if len(mem) == 0:
-
             bot.send_message(cid, cfg.meme_dict_text['meme_no_mem_in_chat'].format(meme_name))
         else:
             if mem[0][0] == 'photo':
