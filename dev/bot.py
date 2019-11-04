@@ -527,9 +527,9 @@ def meme(message):
 #     print(message.content_type)
 #     print(message.json['photo'][-1]['file_id'])
 #     bot.send_photo(message.chat.id, message.json['photo'][-1]['file_id'])
-    # print(str(message.json['photo']))
-    # print(message.json['photo'][2]['file_id'])
-    # cid = message.chat.id
+#     # print(str(message.json['photo']))
+#     # print(message.json['photo'][2]['file_id'])
+#     # cid = message.chat.id
 
 
 # # раскомментировать, чтобы узнать file_id фотографии
