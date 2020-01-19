@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import config as cfg
 import text_processing as tp
-# import mumu
 import telebot
 import time
 import datetime
@@ -10,6 +9,7 @@ import random
 import event_timer as evt
 import adminId
 import retrying
+import utils
 
 random.seed(time.clock())
 
@@ -17,10 +17,10 @@ bot = telebot.TeleBot(cfg.token)
 
 # week_day = datetime.datetime.today().weekday()
 
-# определяем дефолтное время
-cfg.dinner_time = cfg.dinner_default_time
-cfg.dinner_time = datetime.timedelta(hours=cfg.dinner_time[0], minutes=cfg.dinner_time[1])
-cfg.show_din_time = str(cfg.dinner_time)[:-3]
+# # определяем дефолтное время
+# cfg.dinner_time = cfg.dinner_default_time
+# cfg.dinner_time = datetime.timedelta(hours=cfg.dinner_time[0], minutes=cfg.dinner_time[1])
+# cfg.show_din_time = str(cfg.dinner_time)[:-3]
 
 # таймеры
 # evt.dinner_time_timer(bot)
@@ -117,6 +117,12 @@ def telegram_polling():
 def send_welcome(message):
     cid = message.chat.id
     bot.send_message(cid, cfg.hello_msg)
+
+    # инициируем настройки по умолчанию для новых чатов
+    db.default_settings(cid)
+    # пересчитываем в оперативке настройки
+    cfg.settings = db.select_settings()
+    utils.upd_din_time(cid)
 
 
 # # меню в муму
@@ -220,6 +226,7 @@ def throw_coin(message):
 
     bot.send_message(cid, random.choice(cfg.coin_var))
 
+
 # # подбросить монетку
 # @bot.message_handler(commands=['coin'])
 # @cfg.loglog(command='coin', type='message')
@@ -266,8 +273,8 @@ def magic_ball(message):
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def show_dinner_time(message):
     cid = message.chat.id
-    bot.send_message(cid, random.choice(cfg.dinner_text) + '*' + cfg.show_din_time + '*',
-                     parse_mode='Markdown')
+    bot.send_message(cid, random.choice(cfg.dinner_text) + '<b>' + cfg.show_din_time[cid] + '</b>',
+                     parse_mode='HTML')
 
 
 # сделать SQL запрос
@@ -289,7 +296,7 @@ def sqlsql(message):
             res = db.sql_exec(sqlQuery, [])
             # print(str(res))
             resStr = '[]'
-            if res == 'ERROR!':
+            if res is None:
                 resStr = 'Ошибка в SQL запросе!'
             else:
                 for i in res:
@@ -379,72 +386,13 @@ def penalty(message):
         pen_msg_flg = 0
         for user in pen:
             if int(user[1]) != 0:
-                pen_msg += str(user[0]) + ' — *' + str(user[1]) + '* мин\n'
+                pen_msg += str(user[0]) + ' — <b>' + str(user[1]) + '</b> мин\n'
                 pen_msg_flg = 1
 
         if pen_msg_flg == 1:
-            bot.send_message(cid, pen_msg, parse_mode='Markdown')
+            bot.send_message(cid, pen_msg, parse_mode='HTML')
         else:
             bot.send_message(cid, random.choice(cfg.penalty_empty_text))
-
-
-# функция добавления мема
-def meme_add_processing(message, meme_type):
-    # /meme_add /https... meme_name | /meme_add meme_name
-    cid = message.chat.id
-    bot.send_chat_action(cid, 'typing')
-
-    query = None
-    if meme_type in ('photo', 'video'):
-        query = message.caption.strip().split()
-    else:
-        query = message.text.strip().split()
-
-    meme_name = query[-1].strip().lower()
-
-    mem = db.sql_exec(db.sel_meme_name_text, [cid, meme_name])
-
-    if len(mem) != 0:
-        bot.send_message(cid, cfg.meme_dict_text['add_exist_error'].format(meme_name))
-        return
-
-    curr_max_meme_id = db.sql_exec(db.sel_max_meme_id_text, [cid])
-    if curr_max_meme_id == []:
-        curr_max_meme_id = 1
-    else:
-        curr_max_meme_id = int(curr_max_meme_id[0][0]) + 1
-
-    if meme_name.isdigit() is True:
-        bot.send_message(cid, cfg.meme_dict_text['add_digital_name_error'])
-        return
-
-    res = None
-    if meme_type == 'photo':
-        if len(query) == 2:
-            res = db.sql_exec(db.ins_meme_text, [curr_max_meme_id, cid, meme_name, meme_type,
-                                                 message.json['photo'][-1]['file_id']])
-        else:
-            bot.send_message(cid, cfg.meme_dict_text['add_media_query_error'])
-            return
-    elif meme_type == 'video':
-        if len(query) == 2:
-            res = db.sql_exec(db.ins_meme_text, [curr_max_meme_id, cid, meme_name, meme_type,
-                                                 message.json['video']['file_id']])
-        else:
-            bot.send_message(cid, cfg.meme_dict_text['add_media_query_error'])
-            return
-    elif meme_type == 'link':
-        if len(query) == 3:
-            res = db.sql_exec(db.ins_meme_text, [curr_max_meme_id, cid, meme_name, 'link',
-                                                 query[1].strip()])
-        else:
-            bot.send_message(cid, cfg.meme_dict_text['add_link_query_error'])
-            return
-
-    if res != 'ERROR!':
-        bot.send_message(cid, cfg.meme_dict_text['add_success'].format(meme_name))
-    else:
-        bot.send_message(cid, cfg.meme_dict_text['add_unknown_error'])
 
 
 # добавить мем
@@ -452,7 +400,7 @@ def meme_add_processing(message, meme_type):
 @cfg.loglog(command='meme_add', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def meme_add(message):
-    meme_add_processing(message, 'link')
+    utils.meme_add_processing(message, 'link', bot)
 
 
 # удалить мем
@@ -497,8 +445,8 @@ def meme(message):
         else:
             resStr = 'Мемы, добавленные в ваш чат:\n'
             for i in res:
-                resStr += '*{}. {}*\n'.format(str(i[0]), str(i[1]))
-            bot.send_message(cid, str(resStr), parse_mode='Markdown')
+                resStr += '<b>{}. {}</b>\n'.format(str(i[0]), str(i[1]))
+            bot.send_message(cid, str(resStr), parse_mode='HTML')
     elif len(query) == 2:
         meme_name = query[-1].strip().lower()
         mem = None
@@ -551,21 +499,12 @@ def meme(message):
 #     bot.reply_to(message, str(message.sticker.file_id))
 
 
-# функция вывода nsfw
-def nsfw_print(cid):
-    bot.send_sticker(cid, cfg.sticker_dog_left)
-    bot.send_message(cid, '!!! NOT SAFE FOR WORK !!!\n' * 3)
-    bot.send_sticker(cid, random.choice(cfg.sticker_nsfw))
-    bot.send_message(cid, '!!! NOT SAFE FOR WORK !!!\n' * 3)
-    bot.send_sticker(cid, cfg.sticker_dog_right)
-
-
 # команда nsfw (скрыть с экрана нежелательный контент)
 @bot.message_handler(commands=['nsfw'])
 @cfg.loglog(command='nsfw', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def nsfw(message):
-    nsfw_print(message.chat.id)
+    utils.nsfw_print(message.chat.id, bot)
 
 
 # обработка caption у фото и видео
@@ -575,9 +514,151 @@ def nsfw(message):
 def media_caption(message):
     if message.caption is not None:
         if message.caption.find('/nsfw') != -1:
-            nsfw_print(message.chat.id)
+            utils.nsfw_print(message.chat.id, bot)
         elif message.caption.startswith('/meme_add'):
-            meme_add_processing(message, message.content_type)
+            utils.meme_add_processing(message, message.content_type, bot)
+
+
+# settings
+@bot.message_handler(commands=['settings'])
+@cfg.loglog(command='settings', type='message')
+@retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
+def settings(message):
+    cid = message.chat.id
+    bot.send_message(cid, cfg.settings_msg)
+
+
+# update дефолтного времени обеда
+@bot.message_handler(commands=['settings_default_time'])
+@cfg.loglog(command='settings_default_time', type='message')
+@retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
+def settings_default_time(message):
+    cid = message.chat.id
+    try:
+        msg = message.text.lower().strip().split()
+        # если команда с собакой, обрезаем её до собаки
+        if msg[0].find('@') > 0:
+            msg[0] = msg[0][:msg[0].find('@')]
+        # отображаем текущее значение настройки
+        if len(msg) == 1:
+            bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' + str(cfg.settings[cid]['default_dinner_time'])[:-3] + '</b>.',
+                             parse_mode='HTML')
+        # проверяем корректность ввода
+        elif len(msg) == 2 and tp.time_checker(msg[1]):
+            time = list(map(int, msg[1].split(':')))
+            # проверяем, что время по умолчанию + время отклонения не превышает сутки
+            if (datetime.timedelta(hours=time[0], minutes=time[1]) + cfg.settings[cid]['max_deviation']).days > 0:
+                bot.send_message(cid, cfg.err_time_limit)
+            else:
+                # пересчитываем настройку в оперативке
+                cfg.settings[cid]['default_dinner_time'] = datetime.timedelta(hours=time[0], minutes=time[1])
+                bot.send_message(cid, 'Время обеда по умолчанию изменено, новое значение: <b>' + str(time[0]) + ':' + str(time[1]) + '</b>.',
+                                 parse_mode='HTML')
+                # обновление времени обеда в результате сдвига дефолтного времени
+                old_din_time = cfg.show_din_time
+                utils.upd_din_time(cid)
+                # уведомление пользователей если время обеда сдвинулось
+                if cfg.show_din_time != old_din_time:
+                    bot.send_message(cid, 'С учётом сдвига времени обеда по умолчанию, сегодня обедаем в: <b>' + cfg.show_din_time[cid] + '</b>.',
+                                     parse_mode='HTML')
+                # записываем изменения в БД
+                db.sql_exec(db.update_time_setting_text, [cid, time[0], time[1]])
+        else:
+            bot.send_message(cid, cfg.err_wrong_cmd + msg[0] + ' HH:MM')
+    except Exception as e:
+        print('***ERROR: Проблема с командой settings_default_time***')
+        print('Exception text: ' + str(e))
+
+
+# update среднего времени отклонения от обеда
+@bot.message_handler(commands=['settings_max_deviation'])
+@cfg.loglog(command='settings_max_deviation', type='message')
+@retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
+def settings_max_deviation(message):
+    cid = message.chat.id
+    try:
+        msg = message.text.lower().strip().split()
+        # если команда с собакой, обрезаем её до собаки
+        if msg[0].find('@') > 0:
+            msg[0] = msg[0][:msg[0].find('@')]
+        # отображаем текущее значение настройки
+        if len(msg) == 1:
+            bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' + str(cfg.settings[cid]['max_deviation'].seconds // 60) + '</b> минут.',
+                             parse_mode='HTML')
+        # проверяем корректность ввода
+        elif len(msg) == 2 and tp.minute_checker(msg[1]):
+            deviation = datetime.timedelta(minutes=int(msg[1]))
+            # проверяем, что время по умолчанию + время отклонения не превышает сутки
+            if (deviation + cfg.settings[cid]['default_dinner_time']).days > 0:
+                bot.send_message(cid, cfg.err_time_limit)
+            else:
+                # обновляем настройку в оперативке
+                cfg.settings[cid]['max_deviation'] = deviation
+                bot.send_message(cid, 'Максимальное время отклонения от обеда изменено, новое значение: <b>' + msg[1] + '</b> минут.',
+                                 parse_mode='HTML')
+                # обновляем настройку в БД
+                db.sql_exec(db.update_deviation_setting_text, [int(msg[1])])
+                # TODO: пересчёт votemax
+        else:
+            bot.send_message(cid, cfg.err_wrong_cmd + msg[0] + ' MM')
+    except Exception as e:
+        print('***ERROR: Проблема с командой settings_max_deviation***')
+        print('Exception text: ' + str(e))
+
+
+# update флаговых настроек
+@bot.message_handler(commands=['settings_autodetect_vote', 'settings_lolkek', 'settings_voronkov', 'settings_pidor'])
+@cfg.loglog(command='settings_flg', type='message')
+@retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
+def settings_flg(message):
+    cid = message.chat.id
+    try:
+        msg = message.text.lower().strip().split()
+        # если команда с собакой, обрезаем её до собаки
+        if msg[0].find('@') > 0:
+            msg[0] = msg[0][:msg[0].find('@')]
+        # отображаем текущее значение настройки
+        if len(msg) == 1:
+            bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': ' + cfg.flg_check[cfg.settings[cid][cfg.settings_tovar_dict[msg[0]]]],
+                             parse_mode='HTML')
+        # проверяем корректность ввода
+        elif len(msg) == 2 and msg[1] in cfg.flg_dict:
+            # обновляем в оперативке
+            cfg.settings[cid][cfg.settings_tovar_dict[msg[0]]] = cfg.flg_dict[msg[1]]
+            bot.send_message(cid, 'Настройка ' + msg[0][10:] + cfg.flg_rus[msg[1]], parse_mode='HTML')
+            # обновляем в БД
+            db.sql_exec(db.update_flg_setting_text.format(cfg.settings_todb_dict[msg[0]], cfg.flg_dict[msg[1]], cid), [])
+        else:
+            bot.send_message(cid, cfg.err_wrong_cmd + msg[0] + ' on/off')
+    except Exception as e:
+        print('***ERROR: Проблема с командой settings_flg***')
+        print('Exception text: ' + str(e))
+
+
+# ручное голосование
+@bot.message_handler(commands=['vote'])
+@cfg.loglog(command='vote', type='message')
+@retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
+def vote_cmd(message):
+    try:
+        cid = message.chat.id
+        msg = message.text.strip().split()
+        # проверка корректности ввода
+        if len(msg) == 2 and tp.dinner_election(msg[1], cid, manual=True) is not False:
+            week_day = datetime.datetime.today().weekday()
+            hour_msg = time.localtime(message.date).tm_hour
+            din_elec = int(msg[1])
+            # проверяем что сегодня не выходной и время меньше чем час обеда в этом чате
+            if week_day not in (5, 6) and hour_msg < cfg.settings[cid]['default_dinner_time'].seconds // 3600:
+                bot.send_chat_action(cid, 'typing')
+                utils.vote_func(din_elec, bot, message)
+            else:
+                bot.reply_to(message, cfg.too_late_err)
+        else:
+            bot.send_message(cid, cfg.err_wrong_cmd + 'vote [+/-]N')
+    except Exception as e:
+        print('***ERROR: Проблема с командой vote_cmd***')
+        print('Exception text: ' + str(e))
 
 
 @bot.message_handler(content_types=["text"])
@@ -590,81 +671,27 @@ def text_parser(message):
     # текущее время, может пригодиться
     # hour_now = time.localtime().tm_hour
     cid = message.chat.id
-    user_id = message.from_user.id
+    # user_id = message.from_user.id
 
     if cid in cfg.subscribed_chats:
         # # лол кек ахахаха детектор
-        if tp.lol_kek_detector(message.text) is True:
+        if tp.lol_kek_detector(message.text) is True and cfg.settings[cid]['lol_kek'] == 1:
             print('##########', datetime.datetime.now(), 'lol_kek_detector')
 
             if random.random() >= 0.8:
                 bot.send_sticker(cid, random.choice(cfg.sticker_var))
                 print('Sent!')
 
-        # # голосование за обед
-        din_elec = tp.dinner_election(message.text)
-        # ТОЛЬКО ДЛЯ ТЕСТИРОВАНИЯ!!!
-        # if din_elec is not False:
-        if week_day not in (5, 6) and hour_msg < 12 and din_elec is not False:
-            bot.send_chat_action(cid, 'typing')
-            print('##########', datetime.datetime.now(), 'dinner_election')
+        if cfg.settings[cid]['autodetect_vote'] == 1:
+            # # голосование за обед
+            din_elec = tp.dinner_election(message.text, cid)
+            # ТОЛЬКО ДЛЯ ТЕСТИРОВАНИЯ!!!
+            # if din_elec is not False:
 
-            print('Din_elec =', din_elec)
-            user = db.sql_exec(db.sel_election_text, [cid, user_id])
-            if len(user) == 0:
-                bot.reply_to(message, cfg.err_vote_msg)
-            else:
-                penalty_time = int(user[0][3])
-
-                final_elec_time = 0
-                sign = 1
-
-                if din_elec != 0:
-                    sign = din_elec / abs(din_elec)
-                    final_elec_time = din_elec - sign * penalty_time
-
-                if abs(final_elec_time) > 25:
-                    final_elec_time = sign * 25
-
-                if sign * final_elec_time < 0:
-                    final_elec_time = 0
-
-                # elec_time = datetime.timedelta(minutes=din_elec)
-                # cfg.dinner_time += elec_time
-                final_elec_time = datetime.timedelta(minutes=final_elec_time)
-                cfg.dinner_time += final_elec_time
-
-                additional_msg = ''
-                if penalty_time != 0:
-                    additional_msg = 'с учётом штрафов '
-
-                # голосование или переголосование
-                if int(user[0][2]) == 0:
-                    bot.reply_to(message, cfg.vote_msg + additional_msg + str(cfg.dinner_time)[:-3])
-                else:
-                    final_elec_time = 0
-                    prev_din_elec = int(user[0][2])
-                    sign = 1
-
-                    if prev_din_elec != 0:
-                        sign = prev_din_elec / abs(prev_din_elec)
-                        final_elec_time = prev_din_elec - sign * penalty_time
-
-                    if abs(final_elec_time) > 25:
-                        final_elec_time = sign * 25
-
-                    if sign * final_elec_time < 0:
-                        final_elec_time = 0
-
-                    # elec_time = datetime.timedelta(minutes=int(user[0][2]))
-                    # cfg.dinner_time -= elec_time
-                    final_elec_time = datetime.timedelta(minutes=final_elec_time)
-                    cfg.dinner_time -= final_elec_time
-                    bot.reply_to(message, cfg.revote_msg + additional_msg + str(cfg.dinner_time)[:-3])
-
-                cfg.show_din_time = str(cfg.dinner_time)[:-3]
-                print('Время обеда', cfg.show_din_time)
-                db.sql_exec(db.upd_election_elec_text, [din_elec, cid, user_id])
+            # проверяем что сегодня не выходной и время меньше чем час обеда в этом чате
+            if week_day not in (5, 6) and hour_msg < cfg.settings[cid]['default_dinner_time'].seconds // 3600 and din_elec is not False:
+                bot.send_chat_action(cid, 'typing')
+                utils.vote_func(din_elec, bot, message)
 
         # # понеделбник - денб без мягкого знака
         # ТОЛЬКО ДЛЯ ТЕСТИРОВАНИЯ!!!
@@ -676,7 +703,7 @@ def text_parser(message):
         #     db.sql_exec(db.upd_election_penalty_B_text, [cid, user_id])
         #     print('ШТРАФ')
 
-        print('##########', datetime.datetime.now(), '\n')
+        # print('##########', datetime.datetime.now(), '\n')
 
 
 print('here')

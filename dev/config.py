@@ -15,20 +15,31 @@ hello_msg = '''Привет! Я бот для чата DDS. Если тебе э
 /coin - подбросить монетку
 /dice - подбросить кубик
 /ball - магический шар
+/vote N - проголосовать за время обеда
 /dinner - показать время обеда
 /penalty - показать текущие штрафы
 /penalty @Username N - поставить штраф
 /penalty cancel N - отменить штраф
 /meme NAME/ID - показать мем NAME/ID
-/meme_add link NAME - добавить мем-ссылку в чат
+/meme_add LINK NAME - добавить мем-ссылку в чат
 /meme_add NAME - добавить мем-фото/видео в чат (ввести в подпись к фото/видео)
-/meme_del NAME - удалить мем из чата
+/meme_del NAME/ID - удалить мем из чата
 /nsfw - поднимает потенциально непристойное сообщение наверх, чтобы его не было видно
 /subscribe - подписаться на рассылку @all
 /unsubscribe - отписаться от рассылки @all
 /admin_subscribe_chat - подписать чат на чтение сообщений ботом и рассылки уведомлений
 /admin_unsubscribe_chat - отписать чат от чтения сообщений ботом и рассылки уведомлений
+/settings - настройки бота
 '''
+
+settings_msg = '''Доступные настройки:
+/settings_default_time HH:MM - время обеда по умолчанию
+/settings_max_deviation MM - максимальное отклонение от времени обеда в минутах
+/settings_autodetect_vote on/off - управление автоматическим чтением голосов в чате
+/settings_lolkek on/off - управление реакцией бота на лол кек в чате
+/settings_voronkov on/off - управление напоминаниями от Воронкова
+'''
+# TODO: /settings_pidor on/off - управление встроенным пидором
 
 # название базы данных пользователей в чатах
 db_name = 'bot_database.db'
@@ -84,11 +95,29 @@ no_member = '''Я не нашёл {} в базе...
 Проверь написание ника!
 Ну, или может быть этот человек ещё не подписался?'''
 
+# ошибки команд
+err_wrong_cmd = '''Ошибка: Неправильное использование команды, формат ввода: '''
+err_time_limit = '''Ошибка: Максимально возможное время обеда превышает одни сутки.
+Измените время обеда по умолчанию или среднее время отклонения.'''
+too_late_err = '''Слишком поздно для голосования за время обеда!'''
+
+# информация о текущем значении настройки
+curr_value_info = '''Текущее значение настройки '''
 
 # дефолтное время обеда (часы, минуты)
 dinner_default_time = (12, 45)
-dinner_max_plusminus_time = 25
-dinner_time = 0
+# дефолтное время отклонения от обеда
+dinner_default_plusminus_time = 25
+# dinner_time = 0
+
+# дефолтные флаги
+autodetect_vote_default = 1
+lol_kek_default = 1
+voronkov_default = 0
+pidor_default = 0
+
+# настройки во всех чатах
+settings = {}
 
 # список чатов, чьи сообщения бот читает
 subscribed_chats = []
@@ -145,7 +174,7 @@ ball_var = ['Бесспорно', 'Предрешено', 'Никаких сом
             ]
 
 # переменная для показа времени
-show_din_time = ''
+show_din_time = {}
 
 # текст "доброе утро"
 gm_text = ['С добрым утром, работяги!', 'Мир, труд, май!', 'Ммм... Работка!', 'Нада роботац!']
@@ -241,6 +270,29 @@ week_rus = {
     5: 'суббота',
     6: '-'
 }
+
+
+# словарь флаговых настроек
+settings_todb_dict = {
+    '/settings_autodetect_vote': 'autodetect_vote_flg',
+    '/settings_lolkek': 'lol_kek_flg',
+    '/settings_voronkov': 'voronkov_flg',
+    '/settings_pidor': 'pidor_flg'
+}
+
+settings_tovar_dict = {
+    '/settings_default_time': 'default_dinner_time',
+    '/settings_max_deviation': 'max_deviation',
+    '/settings_autodetect_vote': 'autodetect_vote',
+    '/settings_lolkek': 'lol_kek',
+    '/settings_voronkov': 'voronkov',
+    '/settings_pidor': 'pidor'
+}
+
+# словарь переключения настроек
+flg_dict = {'on': 1, 'off': 0}
+flg_rus = {'on': ' <b>активирована</b>!', 'off': ' <b>деактивирована</b>!'}
+flg_check = {1: '<b>активирована</b>.', 0: '<b>деактивирована</b>.'}
 
 
 # функция для повторения команды бота при выкидывании исключения

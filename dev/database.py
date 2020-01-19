@@ -2,6 +2,7 @@
 
 import sqlite3 as sql
 import config as cfg
+import datetime
 
 ct_text = """CREATE TABLE IF NOT EXISTS PARTICIPANT
             (
@@ -18,7 +19,7 @@ ct_election_text = """CREATE TABLE IF NOT EXISTS ELECTION
             participant_id integer,
             elec_time integer,
             penalty_time integer,
-            penalty_B_time integer
+            minus_flg integer
             );"""
 
 ct_election_hist_text = """CREATE TABLE IF NOT EXISTS ELECTION_HIST
@@ -27,6 +28,7 @@ ct_election_hist_text = """CREATE TABLE IF NOT EXISTS ELECTION_HIST
             participant_id integer,
             elec_time integer,
             penalty_time integer,
+            minus_flg integer,
             election_date text
             );"""
 
@@ -47,13 +49,17 @@ ct_metadata_text = """CREATE TABLE IF NOT EXISTS METADATA
             is_success_flg integer
             );"""
 
-# ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
-#             (
-#             chat_id integer,
-#             name text,
-#             type text,
-#             value text
-#             );"""
+ct_settings_text = """CREATE TABLE IF NOT EXISTS SETTINGS
+            (
+            chat_id integer,
+            default_time_hour integer,
+            default_time_minute integer,
+            max_deviation integer,
+            autodetect_vote_flg integer,
+            lol_kek_flg integer,
+            voronkov_flg integer,
+            pidor_flg integer
+            );"""
 
 ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
             (
@@ -68,7 +74,7 @@ ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
 ins_lj_participant_election_text = """INSERT INTO ELECTION
             SELECT part.chat_id, part.participant_id,
             cast(0 as integer) as elec_time, cast(0 as integer) as penalty_time,
-            cast(0 as integer) as penalty_B_time
+            cast(0 as integer) as minus_flg
             FROM
             PARTICIPANT as part LEFT JOIN ELECTION as elec
             on (part.chat_id = elec.chat_id and
@@ -88,14 +94,18 @@ del_text = """DELETE FROM PARTICIPANT WHERE chat_id = ? and participant_id = ?;"
 
 del_election_text = """DELETE FROM ELECTION WHERE chat_id = ? and participant_id = ?;"""
 
-# sel_all_text = """SELECT * FROM PARTICIPANT WHERE chat_id = ?;"""
 sel_all_text = """SELECT participant_username, participant_id FROM PARTICIPANT WHERE chat_id = ?;"""
 
-# sel_text = """SELECT * FROM PARTICIPANT WHERE chat_id = ? and participant_id = ?;"""
 sel_text = """SELECT participant_username, participant_id
             FROM PARTICIPANT WHERE chat_id = ? and participant_id = ?;"""
 
 sel_election_text = """SELECT * FROM ELECTION WHERE chat_id = ? and participant_id = ?;"""
+
+# вытаскиваем текущие голоса и штрафы всех участников
+sel_all_election_text = """SELECT * FROM ELECTION;"""
+
+# вытаскиваем чаты которые голосуют
+sel_chats_election_text = """SELECT DISTINCT chat_id FROM ELECTION;"""
 
 upd_election_elec_text = """UPDATE ELECTION
             SET elec_time = ?
@@ -105,17 +115,17 @@ upd_election_penalty_text = """UPDATE ELECTION
             SET penalty_time = ?
             WHERE chat_id = ? and participant_id = ?;"""
 
-upd_election_penalty_B_text = """UPDATE ELECTION
-            SET penalty_B_time = penalty_B_time + 1
-            WHERE chat_id = ? and participant_id = ?;"""
+# upd_election_penalty_B_text = """UPDATE ELECTION
+#             SET penalty_B_time = penalty_B_time + 1
+#             WHERE chat_id = ? and participant_id = ?;"""
 
-sel_election_penalty_B_text = """SELECT chat_id, participant_id, elec_time,
-            (penalty_time + penalty_B_time) FROM ELECTION
-            WHERE elec_time <> 0"""
+# sel_election_penalty_B_text = """SELECT chat_id, participant_id, elec_time,
+#             (penalty_time + penalty_B_time) FROM ELECTION
+#             WHERE elec_time <> 0"""
 
 reset_election_time_text = """UPDATE ELECTION SET elec_time = ?;"""
 
-reset_penalty_B_time_text = """UPDATE ELECTION SET penalty_B_time = ?;"""
+# reset_penalty_B_time_text = """UPDATE ELECTION SET penalty_B_time = ?;"""
 
 colect_election_hist_text = """INSERT INTO ELECTION_HIST
             SELECT elec.chat_id, elec.participant_id, elec.elec_time, elec.penalty_time,
@@ -156,9 +166,6 @@ sel_meme_id_text = """SELECT meme_type, meme_value FROM MEME WHERE chat_id = ? A
 
 sel_meme_in_chat_text = """SELECT meme_id, meme_name FROM MEME WHERE chat_id = ?"""
 
-# ins_meme_text = """INSERT INTO MEME
-#             VALUES (?,?,?,?);"""
-
 ins_meme_text = """INSERT INTO MEME
             VALUES (?,?,?,?,?);"""
 
@@ -188,6 +195,8 @@ def create_table():
     cursor.execute(ct_metadata_text)
     # таблица мемов
     cursor.execute(ct_meme_text)
+    # таблица настроек
+    cursor.execute(ct_settings_text)
     db.commit()
 
 
@@ -200,9 +209,107 @@ def sql_exec(exec_text, params):
         cursor.execute(exec_text, params)
         db.commit()
         return cursor.fetchall()
-    except Exception:
-        return 'ERROR!'
+    except Exception as e:
+        print('***ERROR: sql_exec failed!***')
+        print('Exception text: ' + str(e))
+        return None
 
+
+# простая проверка в базе чего угодно с возвратом true/false
+@cfg.loglog(command='boolean_select', type='db_common')
+def boolean_select(query, params):
+    # res = sql_exec(query, params)
+    # return True if res else False
+    return True if sql_exec(query, params) else False
+
+
+is_subscriber_text = """SELECT 1 FROM PARTICIPANT WHERE chat_id = ? and participant_id = ?;"""
+has_penalty_text = """SELECT 1 FROM ELECTION WHERE chat_id = ? and participant_id = ? and penalty_time > 0;"""
+is_minus_text = """SELECT 1 FROM ELECTION WHERE chat_id = ? and participant_id = ? and minus_flg = 1;"""
+is_pidor_text = """___"""
+check_if_settings_exist_text = """SELECT 1 FROM SETTINGS WHERE chat_id = ?;"""
+ins_default_settings_text = """INSERT INTO SETTINGS VALUES (?,?,?,?,?,?,?,?);"""
+
+
+# является подписчиком
+def is_subscriber(chat_id, user_id):
+    return boolean_select(is_subscriber_text, [chat_id, user_id])
+
+
+# имеет штрафы
+def has_penalty(chat_id, user_id):
+    return boolean_select(has_penalty_text, [chat_id, user_id])
+
+
+# не обедает сегодня
+def is_minus(chat_id, user_id):
+    return boolean_select(is_minus_text, [chat_id, user_id])
+
+
+# заглушка до реализации пидора в боте
+def is_pidor(chat_id, user_id):
+    # return boolean_select(is_pidor, chat_id, user_id)
+    return False
+
+
+# вставка настроек по умолчанию
+@cfg.loglog(command='default_settings', type='settings')
+def default_settings(chat_id):
+    # не добавляем дубли
+    if not(boolean_select(check_if_settings_exist_text, [chat_id])):
+        # добавляем в базу настройки времени по умолчанию
+        sql_exec(ins_default_settings_text,
+                 [chat_id,
+                  cfg.dinner_default_time[0],
+                  cfg.dinner_default_time[1],
+                  cfg.dinner_default_plusminus_time,
+                  cfg.autodetect_vote_default,
+                  cfg.lol_kek_default,
+                  cfg.voronkov_default,
+                  cfg.pidor_default]
+                 )
+
+
+# обновление среднего времени
+update_time_setting_text = """UPDATE SETTINGS
+                            SET default_time_hour = ?,
+                            default_time_minute = ?
+                            WHERE chat_id = ?;"""
+
+# обновление времени отклонения
+update_deviation_setting_text = """UPDATE SETTINGS
+                           SET max_deviation = ?
+                           WHERE chat_id = ?; """
+
+# обновление флаговых настроек
+update_flg_setting_text = "UPDATE SETTINGS SET {} = {} WHERE chat_id = {};"
+
+# вытаскиваем настройки по умолчанию в чатах
+select_settings_text = """SELECT chat_id, default_time_hour, default_time_minute,
+                  max_deviation, autodetect_vote_flg, lol_kek_flg, voronkov_flg, pidor_flg
+                  FROM SETTINGS; """
+
+
+def select_settings():
+    try:
+        settings = dict()
+        db = sql.connect(cfg.db_name)
+        cursor = db.cursor()
+        cursor.execute(select_settings_text)
+        res = cursor.fetchall()
+        for i in range(len(res)):
+            settings[res[i][0]] = {"default_dinner_time": datetime.timedelta(hours=res[i][1], minutes=res[i][2]),
+                                   "max_deviation": datetime.timedelta(minutes=res[i][3]),
+                                   "autodetect_vote": res[i][4],
+                                   "lol_kek": res[i][5],
+                                   "voronkov": res[i][6],
+                                   "pidor": res[i][7]
+                                   }
+        return settings
+    except Exception as e:
+        print('***ERROR: select_settings failed!***')
+        print('Exception text: ' + str(e))
+        return 'ERROR!'
 
 # очистка таблицы голосования, ТОЛЬКО ДЛЯ ТЕСТИРОВАНИЯ!!!
 # sql_exec(reset_election_time_text, [0])
@@ -289,6 +396,12 @@ if max_id_rk[0][0] is None:
     max_id_rk = [(0,)]
 cfg.max_id_rk = int(max_id_rk[0][0]) + 1
 
+# инициируем настройки в голосующих чатах
+chat_voters = sql_exec(sel_chats_election_text, [])
+for i in range(len(chat_voters)):
+    default_settings(chat_voters[i][0])
+# запоминаем настройки
+cfg.settings = select_settings()
 
 # db = sql.connect(cfg.db_name)
 # cursor = db.cursor()
