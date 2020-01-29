@@ -20,7 +20,7 @@ def call_all(query=db.sel_all_text, chat_id=None):
             if users == []:
                 chatUsers[cid] = ''
                 continue
-            call_users = 'Эй, @all: '
+            call_users = '@all: '
             for i in users:
                 call_users += '@' + str(i[0]) + ' '
             chatUsers[cid] = call_users.strip() + '\n'
@@ -30,7 +30,7 @@ def call_all(query=db.sel_all_text, chat_id=None):
             chatUsers[chat_id] = ''
             return chatUsers
 
-        call_users = 'Эй, @all: '
+        call_users = '@all: '
         for i in users:
             call_users += '@' + str(i[0]) + ' '
         chatUsers[chat_id] = call_users.strip() + '\n'
@@ -43,10 +43,10 @@ def send_msg(bot, msg, cid=None):
     if cid is None:
         for chat_id in cfg.subscribed_chats:
             # bot.send_message(chat_id, msg, parse_mode='Markdown')
-            bot.send_message(chat_id, msg)
+            bot.send_message(chat_id, msg, parse_mode='HTML')
     else:
         # bot.send_message(cid, msg, parse_mode='Markdown')
-        bot.send_message(cid, msg)
+        bot.send_message(cid, msg, parse_mode='HTML')
 
 
 @cfg.loglog(command='check_metadata', type='bot')
@@ -78,11 +78,6 @@ def check_metadata(bot):
                 else:
                     if m[4] >= 0:
                         # вычисляем дату исполнения
-                        # hh = 72
-                        # if dttm.weekday() in (3, 4):
-                        #     hh = 120
-                        # elif dttm.weekday() == 5:
-                        #     hh = 96
                         hh = 48
                         if dttm.weekday() in (4, 5):
                             hh = 96
@@ -163,7 +158,6 @@ def voronkov_timer(bot, meta):
             print('!!! ОШИБКА, НЕТ ЮЗЕРОВ В БАЗЕ ДЛЯ CHAT_ID = ' + str(meta[2]) + ' !!!')
             return
 
-    # user = '@' + user[0][4]
     user = '@' + user[0][0]
 
     scenario = rnd.choice(cfg.voronkov_text)
@@ -191,7 +185,7 @@ def dinner_timer(bot, chat_id):
             print('Чат отписался от рассылки, сообщение не отправлено; CHAT_ID = ' + str(cid))
         else:
             # send_msg(bot, '{}{}{}*{}*'.format(msg, rnd.choice(cfg.dinner_notif_text), rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
-            send_msg(bot, '{}{}{}{}'.format(msg, rnd.choice(cfg.dinner_notif_text), rnd.choice(cfg.dinner_text), cfg.show_din_time[cid]), cid)
+            send_msg(bot, '{}{}{}<b>{}</b>'.format(msg, rnd.choice(cfg.dinner_notif_text), rnd.choice(cfg.dinner_text), cfg.show_din_time[cid]), cid)
 
 
 @cfg.loglog(command='one_hour_timer', type='bot')
@@ -246,24 +240,26 @@ def one_hour_timer(bot):
                 if time_now.time().hour == cfg.settings[chats]['default_dinner_time'].seconds // 3600 - 1:
                     chatUsers = call_all(db.sel_nonvoted_users_text)
                     for cid, msg in chatUsers.items():
-                        if msg == '':
-                            send_msg(bot, rnd.choice(cfg.success_vote_notif_text), cid)
-                        else:
-                            send_msg(bot, msg + rnd.choice(cfg.vote_notif_text), cid)
+                        # if msg == '':
+                        #     send_msg(bot, rnd.choice(cfg.success_vote_notif_text), cid)
+                        # else:
+                        send_msg(bot, msg + rnd.choice(cfg.vote_notif_text), cid)
 
                 # обед
                 if time_now.time().hour == cfg.settings[chats]['default_dinner_time'].seconds // 3600:
                     chatUsers = call_all()
                     cur_time = datetime.timedelta(hours=time_now.time().hour, minutes=time_now.time().minute, seconds=time_now.time().second)
                     for cid, msg in chatUsers.items():
-                        if msg == '':
-                            # send_msg(bot, rnd.choice(cfg.dinner_text) + '*' + cfg.show_din_time + '*', cid)
-                            # send_msg(bot, '{}*{}*'.format(rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
-                            send_msg(bot, '{}{}'.format(rnd.choice(cfg.dinner_text), cfg.show_din_time[cid]), cid)
-                        else:
+                        # if msg == '':
+                        #     # send_msg(bot, rnd.choice(cfg.dinner_text) + '*' + cfg.show_din_time + '*', cid)
+                        #     # send_msg(bot, '{}*{}*'.format(rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
+                        #     send_msg(bot, '{}<b>{}</b>'.format(rnd.choice(cfg.dinner_text),
+                        #                                        cfg.show_din_time[cid]), cid)
+                        # else:
                             # send_msg(bot, msg + rnd.choice(cfg.dinner_text) + '*' + cfg.show_din_time + '*', cid)
                             # send_msg(bot, '{}{}*{}*'.format(msg, rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
-                            send_msg(bot, '{}{}{}'.format(msg, rnd.choice(cfg.dinner_text), cfg.show_din_time[cid]), cid)
+                        send_msg(bot, '{}{}<b>{}</b>'.format(msg, rnd.choice(cfg.dinner_text),
+                                                             cfg.show_din_time[cid]), cid)
                         # сохраняем историю голосования
                         db.sql_exec(db.colect_election_hist_text, [str(time_now.date())])
                         # обнуляем время голосования
@@ -290,10 +286,10 @@ def one_hour_timer(bot):
             if str(time_now.time().hour) == '19':
                 chatUsers = call_all()
                 for cid, msg in chatUsers.items():
-                    if msg == '':
-                        send_msg(bot, rnd.choice(cfg.dss_text), cid)
-                    else:
-                        send_msg(bot, msg + rnd.choice(cfg.dss_text), cid)
+                    # if msg == '':
+                    #     send_msg(bot, rnd.choice(cfg.dss_text), cid)
+                    # else:
+                    send_msg(bot, msg + rnd.choice(cfg.dss_text), cid)
 
             # поставить таймер на воронкова
             if str(time_now.time().hour) == '23':

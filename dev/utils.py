@@ -14,12 +14,13 @@ def upd_din_time(cid=0, clear=False):
     global dinner_vote_sum
     if clear:
         # очищаем время голосов за обед в конце дня
-        for chats in cfg.show_din_time.keys():
-            dinner_vote_sum[chats] = 0
-            cfg.show_din_time[chats] = cfg.settings[chats]['default_dinner_time']
+        for chat in cfg.show_din_time.keys():
+            dinner_vote_sum[chat] = 0
+            cfg.show_din_time[chat] = cfg.settings[chat]['default_dinner_time']
     else:
         # пересчитываем время обеда в глобальной переменной
-        cfg.show_din_time[cid] = str(cfg.settings[cid]['default_dinner_time'] + datetime.timedelta(minutes=dinner_vote_sum.get(cid, 0)))[:-3]
+        cfg.show_din_time[cid] = str(cfg.settings[cid]['default_dinner_time'] +
+                                     datetime.timedelta(minutes=dinner_vote_sum.get(cid, 0)))[:-3]
 
 
 # вернуть время обеда в datetime
@@ -121,7 +122,7 @@ def vote_recalc():
 
 
 # nsfw print function
-@cfg.loglog(command='nsfw_print', type='bot')
+# @cfg.loglog(command='nsfw_print', type='bot')
 def nsfw_print(cid, bot):
     bot.send_sticker(cid, cfg.sticker_dog_left)
     bot.send_message(cid, '!!! NOT SAFE FOR WORK !!!\n' * 3)

@@ -269,6 +269,16 @@ def default_settings(chat_id):
                   cfg.pidor_default]
                  )
 
+        cfg.settings[chat_id] = {
+            "default_dinner_time": datetime.timedelta(hours=cfg.dinner_default_time[0],
+                                                      minutes=cfg.dinner_default_time[1]),
+            "max_deviation": datetime.timedelta(minutes=cfg.dinner_default_plusminus_time),
+            "autodetect_vote": cfg.autodetect_vote_default,
+            "lol_kek": cfg.lol_kek_default,
+            "voronkov": cfg.voronkov_default,
+            "pidor": cfg.pidor_default
+        }
+
 
 # обновление среднего времени
 update_time_setting_text = """UPDATE SETTINGS
@@ -292,19 +302,17 @@ select_settings_text = """SELECT chat_id, default_time_hour, default_time_minute
 
 def select_settings():
     try:
-        settings = dict()
-        db = sql.connect(cfg.db_name)
-        cursor = db.cursor()
-        cursor.execute(select_settings_text)
-        res = cursor.fetchall()
+        settings = {}
+        res = sql_exec(select_settings_text, [])
         for i in range(len(res)):
-            settings[res[i][0]] = {"default_dinner_time": datetime.timedelta(hours=res[i][1], minutes=res[i][2]),
-                                   "max_deviation": datetime.timedelta(minutes=res[i][3]),
-                                   "autodetect_vote": res[i][4],
-                                   "lol_kek": res[i][5],
-                                   "voronkov": res[i][6],
-                                   "pidor": res[i][7]
-                                   }
+            settings[res[i][0]] = {
+                "default_dinner_time": datetime.timedelta(hours=res[i][1], minutes=res[i][2]),
+                "max_deviation": datetime.timedelta(minutes=res[i][3]),
+                "autodetect_vote": res[i][4],
+                "lol_kek": res[i][5],
+                "voronkov": res[i][6],
+                "pidor": res[i][7]
+            }
         return settings
     except Exception as e:
         print('***ERROR: select_settings failed!***')

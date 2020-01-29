@@ -110,19 +110,28 @@ def telegram_polling():
         telegram_polling()
 
 
-# приветствие
-@bot.message_handler(commands=['start', 'help'])
-@cfg.loglog(command='start/help', type='message')
+# инициализация в чате
+@bot.message_handler(commands=['start'])
+@cfg.loglog(command='start', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
-def send_welcome(message):
+def start_bot(message):
     cid = message.chat.id
     bot.send_message(cid, cfg.hello_msg)
 
     # инициируем настройки по умолчанию для новых чатов
     db.default_settings(cid)
     # пересчитываем в оперативке настройки
-    cfg.settings = db.select_settings()
+    # cfg.settings = db.select_settings()
     utils.upd_din_time(cid)
+
+
+# приветствие
+@bot.message_handler(commands=['help'])
+@cfg.loglog(command='help', type='message')
+@retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
+def send_help(message):
+    cid = message.chat.id
+    bot.send_message(cid, cfg.hello_msg)
 
 
 # # меню в муму
@@ -200,7 +209,7 @@ def ping_all(message):
     bot.send_chat_action(cid, 'typing')
     user_id = message.from_user.id
     users = db.sql_exec(db.sel_all_text, [cid])
-    call_text = 'Эй, @all: '
+    call_text = '@all: '
     # бежим по всем юзерам в чате
     for i in users:
         # если юзер не тот, кто вызывал all, уведомляем его
@@ -225,17 +234,6 @@ def throw_coin(message):
     time.sleep(1)
 
     bot.send_message(cid, random.choice(cfg.coin_var))
-
-
-# # подбросить монетку
-# @bot.message_handler(commands=['coin'])
-# @cfg.loglog(command='coin', type='message')
-# def throw_coin(message):
-#     cid = message.chat.id
-#     cfg.retry_bot_command(bot.send_message, cid, random.choice(cfg.precomand_text))
-#     time.sleep(1)
-
-#     cfg.retry_bot_command(bot.send_message, cid, random.choice(cfg.coin_var))
 
 
 # подбросить кубик
@@ -422,7 +420,7 @@ def meme_del(message):
         else:
             res = db.sql_exec(db.del_meme_name_text, [cid, meme_name])
 
-        if res != 'ERROR!':
+        if res is not None:
             bot.send_message(cid, cfg.meme_dict_text['del_success'])
         else:
             bot.send_message(cid, cfg.meme_dict_text['del_unknown_error'])
@@ -541,18 +539,23 @@ def settings_default_time(message):
             msg[0] = msg[0][:msg[0].find('@')]
         # отображаем текущее значение настройки
         if len(msg) == 1:
-            bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' + str(cfg.settings[cid]['default_dinner_time'])[:-3] + '</b>.',
+            bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' +
+                             str(cfg.settings[cid]['default_dinner_time'])[:-3] + '</b>.',
                              parse_mode='HTML')
         # проверяем корректность ввода
         elif len(msg) == 2 and tp.time_checker(msg[1]):
-            time = list(map(int, msg[1].split(':')))
+            # time = list(map(int, msg[1].split(':')))
+            time = [int(m) for m in msg[1].split(':')]
+            newTime = datetime.timedelta(hours=time[0], minutes=time[1])
             # проверяем, что время по умолчанию + время отклонения не превышает сутки
-            if (datetime.timedelta(hours=time[0], minutes=time[1]) + cfg.settings[cid]['max_deviation']).days > 0:
+            if (newTime + cfg.settings[cid]['max_deviation']).days > 0:
                 bot.send_message(cid, cfg.err_time_limit)
             else:
                 # пересчитываем настройку в оперативке
-                cfg.settings[cid]['default_dinner_time'] = datetime.timedelta(hours=time[0], minutes=time[1])
-                bot.send_message(cid, 'Время обеда по умолчанию изменено, новое значение: <b>' + str(time[0]) + ':' + str(time[1]) + '</b>.',
+                cfg.settings[cid]['default_dinner_time'] = newTime
+                # bot.send_message(cid, 'Время обеда по умолчанию изменено, новое значение: <b>' + str(time[0]) + ':' + str(time[1]) + '</b>.',
+                #                  parse_mode='HTML')
+                bot.send_message(cid, 'Время обеда по умолчанию изменено, новое значение: <b>' + msg[1] + '</b>.',
                                  parse_mode='HTML')
                 # обновление времени обеда в результате сдвига дефолтного времени
                 old_din_time = cfg.show_din_time
@@ -583,7 +586,8 @@ def settings_max_deviation(message):
             msg[0] = msg[0][:msg[0].find('@')]
         # отображаем текущее значение настройки
         if len(msg) == 1:
-            bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' + str(cfg.settings[cid]['max_deviation'].seconds // 60) + '</b> минут.',
+            bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' +
+                             str(cfg.settings[cid]['max_deviation'].seconds // 60) + '</b> минут.',
                              parse_mode='HTML')
         # проверяем корректность ввода
         elif len(msg) == 2 and tp.minute_checker(msg[1]):
@@ -619,7 +623,8 @@ def settings_flg(message):
             msg[0] = msg[0][:msg[0].find('@')]
         # отображаем текущее значение настройки
         if len(msg) == 1:
-            bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': ' + cfg.flg_check[cfg.settings[cid][cfg.settings_tovar_dict[msg[0]]]],
+            bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': ' +
+                             cfg.flg_check[cfg.settings[cid][cfg.settings_tovar_dict[msg[0]]]],
                              parse_mode='HTML')
         # проверяем корректность ввода
         elif len(msg) == 2 and msg[1] in cfg.flg_dict:
@@ -675,7 +680,7 @@ def text_parser(message):
 
     if cid in cfg.subscribed_chats:
         # # лол кек ахахаха детектор
-        if tp.lol_kek_detector(message.text) is True and cfg.settings[cid]['lol_kek'] == 1:
+        if cfg.settings[cid]['lol_kek'] == 1 and tp.lol_kek_detector(message.text) is True:
             print('##########', datetime.datetime.now(), 'lol_kek_detector')
 
             if random.random() >= 0.8:
