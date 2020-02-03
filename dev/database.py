@@ -304,7 +304,8 @@ def select_settings():
     try:
         settings = {}
         res = sql_exec(select_settings_text, [])
-        for i in range(len(res)):
+        resLen = len(res)
+        for i in range(resLen):
             settings[res[i][0]] = {
                 "default_dinner_time": datetime.timedelta(hours=res[i][1], minutes=res[i][2]),
                 "max_deviation": datetime.timedelta(minutes=res[i][3]),
@@ -406,8 +407,9 @@ cfg.max_id_rk = int(max_id_rk[0][0]) + 1
 
 # инициируем настройки в голосующих чатах
 chat_voters = sql_exec(sel_chats_election_text, [])
-for i in range(len(chat_voters)):
-    default_settings(chat_voters[i][0])
+# for i in range(len(chat_voters)):
+#     default_settings(chat_voters[i][0])
+[default_settings(chat[0]) for chat in chat_voters]
 # запоминаем настройки
 cfg.settings = select_settings()
 

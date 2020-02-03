@@ -7,26 +7,32 @@ import database as db
 import random
 
 
+# вернуть время обеда в datetime
+@cfg.loglog(command='show_din_time', type='bot')
+def show_din_time(cid):
+    return cfg.settings[cid]['default_dinner_time'] + datetime.timedelta(minutes=dinner_vote_sum.get(cid, 0))
+
+
 # обновить глобальную переменную с временем обеда
 @cfg.loglog(command='upd_din_time', type='bot')
-def upd_din_time(cid=0, clear=False):
+def upd_din_time(cid=False):
     # указываем на использование глобальной переменной, иначе не работает
     global dinner_vote_sum
-    if clear:
+    # if clear:
+    #     # очищаем время голосов за обед в конце дня
+    #     for chat in cfg.show_din_time.keys():
+    #         dinner_vote_sum[chat] = 0
+    #         cfg.show_din_time[chat] = cfg.settings[chat]['default_dinner_time']
+    if cid is False:
         # очищаем время голосов за обед в конце дня
         for chat in cfg.show_din_time.keys():
             dinner_vote_sum[chat] = 0
             cfg.show_din_time[chat] = cfg.settings[chat]['default_dinner_time']
     else:
         # пересчитываем время обеда в глобальной переменной
-        cfg.show_din_time[cid] = str(cfg.settings[cid]['default_dinner_time'] +
-                                     datetime.timedelta(minutes=dinner_vote_sum.get(cid, 0)))[:-3]
-
-
-# вернуть время обеда в datetime
-@cfg.loglog(command='show_din_time', type='bot')
-def show_din_time(cid):
-    return cfg.settings[cid]['default_dinner_time'] + datetime.timedelta(minutes=dinner_vote_sum.get(cid, 0))
+        # cfg.show_din_time[cid] = str(cfg.settings[cid]['default_dinner_time'] +
+        #                              datetime.timedelta(minutes=dinner_vote_sum.get(cid, 0)))[:-3]
+        cfg.show_din_time[cid] = str(show_din_time(cid))[:-3]
 
 
 # обработка голоса за обед
@@ -47,8 +53,11 @@ def vote_func(vote_chat, bot, message):
             sign = vote_chat / abs(vote_chat)
             final_elec_time = vote_chat - sign * penalty_time
 
-        if abs(final_elec_time) > 25:
-            final_elec_time = sign * 25
+        # if abs(final_elec_time) > 25:
+        #     final_elec_time = sign * 25
+
+        if abs(final_elec_time) > cfg.settings[cid]['max_deviation'].minute:
+            final_elec_time = sign * cfg.settings[cid]['max_deviation'].minute
 
         if sign * final_elec_time < 0:
             final_elec_time = 0
@@ -75,8 +84,11 @@ def vote_func(vote_chat, bot, message):
                 sign = prev_vote_db / abs(prev_vote_db)
                 final_elec_time = prev_vote_db - sign * penalty_time
 
-            if abs(final_elec_time) > 25:
-                final_elec_time = sign * 25
+            # if abs(final_elec_time) > 25:
+            #     final_elec_time = sign * 25
+
+            if abs(final_elec_time) > cfg.settings[cid]['max_deviation'].minute:
+                final_elec_time = sign * cfg.settings[cid]['max_deviation'].minute
 
             if sign * final_elec_time < 0:
                 final_elec_time = 0
@@ -190,6 +202,6 @@ def meme_add_processing(message, meme_type, bot):
         bot.send_message(cid, cfg.meme_dict_text['add_unknown_error'])
 
 
-dinner_vote_sum = dict()
+dinner_vote_sum = {}
 # пересчитываем сумму голосов в оперативке в случае перезагрузки бота в течение дня
-vote_recalc()
+# vote_recalc()

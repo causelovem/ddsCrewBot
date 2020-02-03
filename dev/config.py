@@ -8,6 +8,9 @@ import datetime
 # токен бота
 token = tokenBot.token
 
+# название бота
+bot_name = 'ddsCrewBot'
+
 # приветственное сообщение бота
 hello_msg = '''Привет! Я бот для чата DDS. Если тебе это ничего не говорит, иди своей дорогой дальше.
 Я уже умею достаточно много чего, но всё равно буду расти:
@@ -317,6 +320,15 @@ def subscribed_chats_transform(update):
 def loglog(**command):
     def decorator(func):
         def wrapped(*msg):
+            if command['type'] == 'message':
+                cmdLine = msg[0].text.lower().strip().split()
+                cmdName = cmdLine[0].split('@')
+                if len(cmdName) == 2 and cmdName[1] == bot_name.lower():
+                    cmdLine[0] = cmdName[0]
+                    msg[0].text = ' '.join(cmdLine)
+                elif len(cmdName) != 1:
+                    return
+
             print('##########', datetime.datetime.now(), command['command'])
             if command['type'] == 'message':
                 print('Chat_id =', msg[0].chat.id)

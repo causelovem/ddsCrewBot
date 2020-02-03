@@ -89,7 +89,7 @@ def check_metadata(bot):
                         expire_date = time_now + delta
 
                         db.sql_exec(db.ins_operation_meta_text,
-                                    [cfg.max_id_rk, 0, m[2], m[3], - int(m[4]),
+                                    [cfg.max_id_rk, 0, m[2], m[3], -int(m[4]),
                                      str(time_now)[:-7], str(expire_date)[:-7], 1])
                         cfg.max_id_rk += 1
 
@@ -97,8 +97,8 @@ def check_metadata(bot):
 
                     if penalty < 0:
                         penalty = 0
-                    elif penalty > 25:
-                        penalty = 25
+                    elif penalty > cfg.settings[m[2]]['max_deviation'].minute:
+                        penalty = cfg.settings[m[2]]['max_deviation'].minute
 
                     # ставим/убираем штраф
                     db.sql_exec(db.upd_election_penalty_text, [penalty, m[2], m[3]])
@@ -266,7 +266,8 @@ def one_hour_timer(bot):
                         db.sql_exec(db.reset_election_time_text, [0])
 
                         # ставим таймер за 10 минут до обеда, о напоминании об обеде
-                        delta = utils.show_din_time() - cur_time - datetime.timedelta(minutes=10, seconds=0)
+                        # delta = utils.show_din_time() - cur_time - datetime.timedelta(minutes=10, seconds=0)
+                        delta = utils.show_din_time(cid) - cur_time - datetime.timedelta(minutes=10, seconds=0)
                         th.Timer(int(delta.total_seconds()) + 1, dinner_timer, args=(bot, cid,)).start()
 
                 # # намёк поесть
@@ -331,4 +332,4 @@ def one_hour_timer(bot):
             check_metadata(bot)
 
         # обнуляем время голосования в боте
-        utils.upd_din_time(clear=True)
+        utils.upd_din_time()
