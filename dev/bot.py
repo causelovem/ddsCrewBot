@@ -271,6 +271,7 @@ def magic_ball(message):
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def show_dinner_time(message):
     cid = message.chat.id
+    print(cfg.show_din_time[cid])
     bot.send_message(cid, random.choice(cfg.dinner_text) + '<b>' + cfg.show_din_time[cid] + '</b>',
                      parse_mode='HTML')
 
@@ -535,9 +536,6 @@ def settings_default_time(message):
     cid = message.chat.id
     try:
         msg = message.text.lower().strip().split()
-        # если команда с собакой, обрезаем её до собаки
-        # if msg[0].find('@') > 0:
-        #     msg[0] = msg[0][:msg[0].find('@')]
         # отображаем текущее значение настройки
         if len(msg) == 1:
             bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' +
@@ -545,7 +543,6 @@ def settings_default_time(message):
                              parse_mode='HTML')
         # проверяем корректность ввода
         elif len(msg) == 2 and tp.time_checker(msg[1]):
-            # time = list(map(int, msg[1].split(':')))
             time = [int(m) for m in msg[1].split(':')]
             newTime = datetime.timedelta(hours=time[0], minutes=time[1])
             # проверяем, что время по умолчанию + время отклонения не превышает сутки
@@ -556,19 +553,17 @@ def settings_default_time(message):
             else:
                 # пересчитываем настройку в оперативке
                 cfg.settings[cid]['default_dinner_time'] = newTime
-                # bot.send_message(cid, 'Время обеда по умолчанию изменено, новое значение: <b>' + str(time[0]) + ':' + str(time[1]) + '</b>.',
-                #                  parse_mode='HTML')
-                bot.send_message(cid, 'Время обеда по умолчанию изменено, новое значение: <b>' + msg[1] + '</b>.',
+                bot.send_message(cid, 'Время обеда по умолчанию изменено, новое значение: <b>' +
+                                 msg[1] + '</b>.',
                                  parse_mode='HTML')
                 # обновление времени обеда в результате сдвига дефолтного времени
-                # old_din_time = cfg.show_din_time[cid]
                 utils.upd_din_time(cid)
                 # уведомление пользователей если время обеда сдвинулось
-                # if cfg.show_din_time[cid] != old_din_time:
-                bot.send_message(cid, 'С учётом сдвига времени обеда по умолчанию, сегодня обедаем в: <b>' + cfg.show_din_time[cid] + '</b>.',
+                bot.send_message(cid, 'С учётом сдвига времени обеда по умолчанию, сегодня обедаем в: <b>' +
+                                 cfg.show_din_time[cid] + '</b>.',
                                  parse_mode='HTML')
                 # записываем изменения в БД
-                db.sql_exec(db.update_time_setting_text, [cid, time[0], time[1]])
+                db.sql_exec(db.update_time_setting_text, [time[0], time[1], cid])
         else:
             bot.send_message(cid, cfg.err_wrong_cmd + msg[0] + ' HH:MM')
     except Exception as e:
@@ -584,16 +579,10 @@ def settings_max_deviation(message):
     cid = message.chat.id
     try:
         msg = message.text.lower().strip().split()
-        # если команда с собакой, обрезаем её до собаки
-        # if msg[0].find('@') > 0:
-        #     msg[0] = msg[0][:msg[0].find('@')]
         # отображаем текущее значение настройки
         if len(msg) == 1:
-            # bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' +
-            #                  str(cfg.settings[cid]['max_deviation'].seconds // 60) + '</b> минут.',
-            #                  parse_mode='HTML')
             bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' +
-                             str(cfg.settings[cid]['max_deviation'].minute) + '</b> минут.',
+                             str(cfg.settings[cid]['max_deviation'].seconds // 60) + '</b> минут.',
                              parse_mode='HTML')
         # проверяем корректность ввода
         elif len(msg) == 2 and tp.minute_checker(msg[1]):
@@ -606,10 +595,11 @@ def settings_max_deviation(message):
             else:
                 # обновляем настройку в оперативке
                 cfg.settings[cid]['max_deviation'] = deviation
-                bot.send_message(cid, 'Максимальное время отклонения от обеда изменено, новое значение: <b>' + msg[1] + '</b> минут.',
+                bot.send_message(cid, 'Максимальное время отклонения от обеда изменено, новое значение: <b>' +
+                                 msg[1] + '</b> минут.',
                                  parse_mode='HTML')
                 # обновляем настройку в БД
-                db.sql_exec(db.update_deviation_setting_text, [int(msg[1])])
+                db.sql_exec(db.update_deviation_setting_text, [int(msg[1]), cid])
                 # TODO: пересчёт votemax
         else:
             bot.send_message(cid, cfg.err_wrong_cmd + msg[0] + ' MM')
@@ -619,16 +609,14 @@ def settings_max_deviation(message):
 
 
 # update флаговых настроек
-@bot.message_handler(commands=['settings_autodetect_vote', 'settings_lolkek', 'settings_voronkov', 'settings_pidor'])
+@bot.message_handler(commands=['settings_autodetect_vote', 'settings_lolkek',
+                               'settings_voronkov', 'settings_pidor'])
 @cfg.loglog(command='settings_flg', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def settings_flg(message):
     cid = message.chat.id
     try:
         msg = message.text.lower().strip().split()
-        # если команда с собакой, обрезаем её до собаки
-        # if msg[0].find('@') > 0:
-        #     msg[0] = msg[0][:msg[0].find('@')]
         # отображаем текущее значение настройки
         if len(msg) == 1:
             bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': ' +
@@ -643,7 +631,8 @@ def settings_flg(message):
                 cfg.settings[cid][cfg.settings_tovar_dict[msg[0]]] = cfg.flg_dict[msg[1]]
                 bot.send_message(cid, 'Настройка ' + msg[0][10:] + cfg.flg_rus[msg[1]], parse_mode='HTML')
                 # обновляем в БД
-                db.sql_exec(db.update_flg_setting_text.format(cfg.settings_todb_dict[msg[0]], cfg.flg_dict[msg[1]], cid), [])
+                db.sql_exec(db.update_flg_setting_text.format(cfg.settings_todb_dict[msg[0]],
+                                                              cfg.flg_dict[msg[1]], cid), [])
         else:
             bot.send_message(cid, cfg.err_wrong_cmd + msg[0] + ' on/off')
     except Exception as e:
@@ -708,16 +697,6 @@ def text_parser(message):
             if week_day not in (5, 6) and hour_msg < cfg.settings[cid]['default_dinner_time'].seconds // 3600 and din_elec is not False:
                 bot.send_chat_action(cid, 'typing')
                 utils.vote_func(din_elec, bot, message)
-
-        # # понеделбник - денб без мягкого знака
-        # ТОЛЬКО ДЛЯ ТЕСТИРОВАНИЯ!!!
-        # if tp.soft_sign(message.text) is True:
-        # if week_day == 0 and hour_msg < 12 and tp.soft_sign(message.text) is True:
-        #     print('##########', datetime.datetime.now(), 'soft_sign')
-
-        #     bot.reply_to(message, 'ШТРАФ')
-        #     db.sql_exec(db.upd_election_penalty_B_text, [cid, user_id])
-        #     print('ШТРАФ')
 
         # print('##########', datetime.datetime.now(), '\n')
 

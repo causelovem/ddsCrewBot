@@ -9,7 +9,7 @@ import datetime
 token = tokenBot.token
 
 # название бота
-bot_name = 'ddsCrewBot'
+bot_name = 'ddsCrewTESTBot'
 
 # приветственное сообщение бота
 hello_msg = '''Привет! Я бот для чата DDS. Если тебе это ничего не говорит, иди своей дорогой дальше.

@@ -164,7 +164,7 @@ sel_meme_name_text = """SELECT meme_type, meme_value FROM MEME WHERE chat_id = ?
 
 sel_meme_id_text = """SELECT meme_type, meme_value FROM MEME WHERE chat_id = ? AND meme_id = ?;"""
 
-sel_meme_in_chat_text = """SELECT meme_id, meme_name FROM MEME WHERE chat_id = ?"""
+sel_meme_in_chat_text = """SELECT meme_id, meme_name FROM MEME WHERE chat_id = ? ORDER BY meme_id ASC"""
 
 ins_meme_text = """INSERT INTO MEME
             VALUES (?,?,?,?,?);"""
@@ -176,6 +176,37 @@ del_meme_id_text = """DELETE FROM MEME WHERE chat_id = ? AND meme_id = ?;"""
 sel_max_meme_id_text = """SELECT max(meme_id) FROM MEME
                           WHERE chat_id = ?
                           group by chat_id"""
+
+is_subscriber_text = """SELECT 1 FROM PARTICIPANT WHERE chat_id = ? and participant_id = ?;"""
+
+has_penalty_text = """SELECT 1 FROM ELECTION WHERE chat_id = ? and participant_id = ? and penalty_time > 0;"""
+
+is_minus_text = """SELECT 1 FROM ELECTION WHERE chat_id = ? and participant_id = ? and minus_flg = 1;"""
+
+is_pidor_text = """___"""
+
+check_if_settings_exist_text = """SELECT 1 FROM SETTINGS WHERE chat_id = ?;"""
+
+ins_default_settings_text = """INSERT INTO SETTINGS VALUES (?,?,?,?,?,?,?,?);"""
+
+# обновление среднего времени
+update_time_setting_text = """UPDATE SETTINGS
+                            SET default_time_hour = ?,
+                            default_time_minute = ?
+                            WHERE chat_id = ?;"""
+
+# обновление времени отклонения
+update_deviation_setting_text = """UPDATE SETTINGS
+                           SET max_deviation = ?
+                           WHERE chat_id = ?;"""
+
+# обновление флаговых настроек
+update_flg_setting_text = "UPDATE SETTINGS SET {} = {} WHERE chat_id = {};"
+
+# вытаскиваем настройки по умолчанию в чатах
+select_settings_text = """SELECT chat_id, default_time_hour, default_time_minute,
+                  max_deviation, autodetect_vote_flg, lol_kek_flg, voronkov_flg, pidor_flg
+                  FROM SETTINGS;"""
 
 
 # создать таблицу
@@ -216,19 +247,8 @@ def sql_exec(exec_text, params):
 
 
 # простая проверка в базе чего угодно с возвратом true/false
-@cfg.loglog(command='boolean_select', type='db_common')
 def boolean_select(query, params):
-    # res = sql_exec(query, params)
-    # return True if res else False
     return True if sql_exec(query, params) else False
-
-
-is_subscriber_text = """SELECT 1 FROM PARTICIPANT WHERE chat_id = ? and participant_id = ?;"""
-has_penalty_text = """SELECT 1 FROM ELECTION WHERE chat_id = ? and participant_id = ? and penalty_time > 0;"""
-is_minus_text = """SELECT 1 FROM ELECTION WHERE chat_id = ? and participant_id = ? and minus_flg = 1;"""
-is_pidor_text = """___"""
-check_if_settings_exist_text = """SELECT 1 FROM SETTINGS WHERE chat_id = ?;"""
-ins_default_settings_text = """INSERT INTO SETTINGS VALUES (?,?,?,?,?,?,?,?);"""
 
 
 # является подписчиком
@@ -248,7 +268,7 @@ def is_minus(chat_id, user_id):
 
 # заглушка до реализации пидора в боте
 def is_pidor(chat_id, user_id):
-    # return boolean_select(is_pidor, chat_id, user_id)
+    # return boolean_select(is_pidor, [chat_id, user_id])
     return False
 
 
@@ -280,26 +300,6 @@ def default_settings(chat_id):
         }
 
 
-# обновление среднего времени
-update_time_setting_text = """UPDATE SETTINGS
-                            SET default_time_hour = ?,
-                            default_time_minute = ?
-                            WHERE chat_id = ?;"""
-
-# обновление времени отклонения
-update_deviation_setting_text = """UPDATE SETTINGS
-                           SET max_deviation = ?
-                           WHERE chat_id = ?; """
-
-# обновление флаговых настроек
-update_flg_setting_text = "UPDATE SETTINGS SET {} = {} WHERE chat_id = {};"
-
-# вытаскиваем настройки по умолчанию в чатах
-select_settings_text = """SELECT chat_id, default_time_hour, default_time_minute,
-                  max_deviation, autodetect_vote_flg, lol_kek_flg, voronkov_flg, pidor_flg
-                  FROM SETTINGS; """
-
-
 def select_settings():
     try:
         settings = {}
@@ -307,13 +307,15 @@ def select_settings():
         resLen = len(res)
         for i in range(resLen):
             settings[res[i][0]] = {
-                "default_dinner_time": datetime.timedelta(hours=res[i][1], minutes=res[i][2]),
-                "max_deviation": datetime.timedelta(minutes=res[i][3]),
-                "autodetect_vote": res[i][4],
-                "lol_kek": res[i][5],
-                "voronkov": res[i][6],
-                "pidor": res[i][7]
+                'default_dinner_time': datetime.timedelta(hours=res[i][1], minutes=res[i][2]),
+                'max_deviation': datetime.timedelta(minutes=res[i][3]),
+                'autodetect_vote': res[i][4],
+                'lol_kek': res[i][5],
+                'voronkov': res[i][6],
+                'pidor': res[i][7]
             }
+
+            cfg.show_din_time[res[i][0]] = str(settings[res[i][0]]['default_dinner_time'])[:-3]
         return settings
     except Exception as e:
         print('***ERROR: select_settings failed!***')
@@ -407,8 +409,6 @@ cfg.max_id_rk = int(max_id_rk[0][0]) + 1
 
 # инициируем настройки в голосующих чатах
 chat_voters = sql_exec(sel_chats_election_text, [])
-# for i in range(len(chat_voters)):
-#     default_settings(chat_voters[i][0])
 [default_settings(chat[0]) for chat in chat_voters]
 # запоминаем настройки
 cfg.settings = select_settings()
