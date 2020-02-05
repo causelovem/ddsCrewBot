@@ -70,6 +70,11 @@ ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
             meme_value text
             );"""
 
+tables_with_chat_id = ['PARTICIPANT', 'ELECTION', 'ELECTION_HIST', 'CHAT_ID', 'METADATA', 'SETTINGS', 'MEME']
+
+update_chat_id_text = """UPDATE {}
+                SET chat_id = ?
+                where chat_id = ?;"""
 
 ins_lj_participant_election_text = """INSERT INTO ELECTION
             SELECT part.chat_id, part.participant_id,
@@ -115,17 +120,7 @@ upd_election_penalty_text = """UPDATE ELECTION
             SET penalty_time = ?
             WHERE chat_id = ? and participant_id = ?;"""
 
-# upd_election_penalty_B_text = """UPDATE ELECTION
-#             SET penalty_B_time = penalty_B_time + 1
-#             WHERE chat_id = ? and participant_id = ?;"""
-
-# sel_election_penalty_B_text = """SELECT chat_id, participant_id, elec_time,
-#             (penalty_time + penalty_B_time) FROM ELECTION
-#             WHERE elec_time <> 0"""
-
 reset_election_time_text = """UPDATE ELECTION SET elec_time = ?;"""
-
-# reset_penalty_B_time_text = """UPDATE ELECTION SET penalty_B_time = ?;"""
 
 colect_election_hist_text = """INSERT INTO ELECTION_HIST
             SELECT elec.chat_id, elec.participant_id, elec.elec_time, elec.penalty_time,
@@ -390,6 +385,21 @@ def delete_from_chatID(chat_id):
     db.commit()
     # обновляем список чатов для использования ботом
     cfg.subscribed_chats_transform(sql_exec(sel_all_chatID_text, []))
+
+
+# обновление CHAT_ID в базе
+def updateChatId(e, cid):
+    if e.args[0].find('Bad Request: group chat was upgraded to a supergroup chat') != -1:
+        import json as js
+
+        d = js.loads(str(e.args[0].split('\n')[1][3:-2]))
+        newCid = d['parameters']['migrate_to_chat_id']
+
+        print('!!! CHAT WITH CHAT_ID {} MOVED TO CHAT_ID {} !!!'.format(cid, newCid))
+        print('!!! UNPDATING ALL DATABASE !!!')
+
+        for table in tables_with_chat_id:
+            print(update_chat_id_text.format(table))
 
 
 # создать таблицы, если их нет

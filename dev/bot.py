@@ -509,7 +509,7 @@ def nsfw(message):
 
 # обработка caption у фото и видео
 @bot.message_handler(content_types=['photo', 'video'])
-@cfg.loglog(command='media_caption', type='message')
+@cfg.loglog(command='media_caption', type='media')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def media_caption(message):
     if message.caption is not None:
@@ -666,8 +666,8 @@ def vote_cmd(message):
         print('Exception text: ' + str(e))
 
 
-@bot.message_handler(content_types=["text"])
-@cfg.loglog(command='text_parser', type='message')
+@bot.message_handler(content_types=['text'])
+@cfg.loglog(command='text_parser', type='text')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def text_parser(message):
     week_day = datetime.datetime.today().weekday()
@@ -700,6 +700,18 @@ def text_parser(message):
 
         # print('##########', datetime.datetime.now(), '\n')
 
+
+# chatUsers = evt.call_all()
+# print(chatUsers)
+# print(cfg.show_din_time)
+# for cid, msg in chatUsers.items():
+#     # if cid == -379501584:
+#     #     continue
+#     print(cid, msg)
+#     # cid = -379501585
+#     evt.send_msg(bot, '{}{}<b>{}</b>'.format(msg, random.choice(cfg.dinner_text),
+#                                              cfg.show_din_time[cid]), cid)
+#     # evt.send_msg(bot, 'lolol', cid)
 
 print('here')
 bot.remove_webhook()
