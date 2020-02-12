@@ -396,7 +396,7 @@ def updateChatId(e, cid):
         newCid = d['parameters']['migrate_to_chat_id']
 
         print('!!! CHAT WITH CHAT_ID {} MOVED TO CHAT_ID {} !!!'.format(cid, newCid))
-        print('!!! UNPDATING ALL DATABASE !!!')
+        print('!!! UPDATING ALL DATABASE !!!')
 
         for table in tables_with_chat_id:
             print(update_chat_id_text.format(table))
