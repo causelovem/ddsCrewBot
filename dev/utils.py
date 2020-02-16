@@ -17,17 +17,16 @@ def updateChatId(e, cid):
         newCid = d['parameters']['migrate_to_chat_id']
 
         print('!!! CHAT WITH CHAT_ID {} MOVED TO CHAT_ID {} !!!'.format(cid, newCid))
-        # print('!!! UPDATING ALL DATABASE !!!')
 
         if not(db.boolean_select(db.check_if_settings_exist_text, [cid])):
             db.sql_exec(db.ins_settings_copy_text, [newCid, cid])
             cfg.settings[newCid] = cfg.settings[cid].copy()
 
+        db.delete_from_chatID(cid)
+
         cfg.bot.send_message(newCid, cfg.group_to_supergroup_text)
 
         return newCid
-        # for table in tables_with_chat_id:
-        #     print(update_chat_id_text.format(table))
 
 
 def getSettings(cid, setting=None):
@@ -64,7 +63,7 @@ def upd_din_time(cid=False):
         # очищаем время голосов за обед в конце дня
         for chat in cfg.show_din_time.keys():
             dinner_vote_sum[chat] = 0
-            cfg.show_din_time[chat] = str(getSettings(cid, 'default_dinner_time'))[:-3]
+            cfg.show_din_time[chat] = str(getSettings(chat, 'default_dinner_time'))[:-3]
     else:
         # пересчитываем время обеда в глобальной переменной
         cfg.show_din_time[cid] = str(calc_show_din_time(cid))[:-3]

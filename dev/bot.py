@@ -272,7 +272,6 @@ def magic_ball(message):
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
 def show_dinner_time(message):
     cid = message.chat.id
-    print(cfg.show_din_time[cid])
     bot.send_message(cid, random.choice(cfg.dinner_text) + '<b>' + cfg.show_din_time[cid] + '</b>',
                      parse_mode='HTML')
 
@@ -749,16 +748,17 @@ def text_parser(message):
         # print('##########', datetime.datetime.now(), '\n')
 
 
-chatUsers = evt.call_all()
-print(chatUsers)
-print(cfg.show_din_time)
-for cid, msg in chatUsers.items():
-    # if cid == -379501584:
-    #     continue
-    print(cid, msg)
-    # cid = -379501585
-    evt.send_msg(bot, '{}{}<b>{}</b>'.format(msg, random.choice(cfg.dinner_text),
-                                             cfg.show_din_time[cid]), cid)
+# cfg.subscribed_chats.append(-379501584)
+# chatUsers = evt.call_all()
+# print(chatUsers)
+# print(cfg.show_din_time)
+# for cid, msg in chatUsers.items():
+#     # if cid == -379501584:
+#     #     continue
+#     # print(cid, msg)
+#     # cid = -379501585
+#     evt.send_msg(bot, '{}{}<b>{}</b>'.format(msg, random.choice(cfg.dinner_text),
+#                                              cfg.show_din_time[cid]), cid)
 # evt.send_msg(bot, 'lolol')
 
 print('here')

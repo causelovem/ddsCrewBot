@@ -40,15 +40,10 @@ def call_all(query=db.sel_all_text, chat_id=None):
 
 @cfg.loglog(command='send_msg', type='bot')
 def send_msg(bot, msg, cid=None):
-    # try:
     chatToSend = cfg.subscribed_chats if cid is None else [cid]
     for chat_id in chatToSend:
         # bot.send_message(chat_id, msg, parse_mode='HTML')
         utils.sendMessage(bot, chat_id, msg, 'HTML')
-    # except Exception as e:
-    #     print(e)
-    #     if e.__class__.__name__ == 'ApiException':
-    #         utils.updateChatId(e, cid)
 
 
 @cfg.loglog(command='check_metadata', type='bot')

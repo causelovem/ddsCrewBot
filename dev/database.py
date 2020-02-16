@@ -70,12 +70,6 @@ ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
             meme_value text
             );"""
 
-# tables_with_chat_id = ['PARTICIPANT', 'ELECTION', 'ELECTION_HIST', 'CHAT_ID', 'METADATA', 'SETTINGS', 'MEME']
-
-# update_chat_id_text = """UPDATE {}
-#                 SET chat_id = ?
-#                 where chat_id = ?;"""
-
 ins_settings_copy_text = '''INSERT INTO SETTINGS
                 SELECT ?, default_time_hour, default_time_minute, max_deviation,
                        autodetect_vote_flg, lol_kek_flg, voronkov_flg, pidor_flg
