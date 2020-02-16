@@ -7,6 +7,7 @@ import datetime
 
 # токен бота
 token = tokenBot.token
+bot = None
 
 # название бота
 bot_name = 'ddsCrewTESTBot'
@@ -18,6 +19,7 @@ hello_msg = '''Привет! Я бот для чата DDS. Если тебе э
 /coin - подбросить монетку
 /dice - подбросить кубик
 /ball - магический шар
+/lol /kek  - отправить весёлый стикер
 /vote N - проголосовать за время обеда
 /dinner - показать время обеда
 /penalty - показать текущие штрафы
@@ -238,6 +240,13 @@ meme_dict_text = {
     'meme_query_error': 'Мне нужно только название мема или его номер!'
 }
 
+# тект при смене chat_id группы
+group_to_supergroup_text = '''Ой! Ваш чат обновился до супергруппы.
+Мы сохранили ваши настройки, но вам нужно повторно подписать бота на чат:
+/admin_subscribe_chat
+И подписаться для участия в голосовании:
+/subscribe'''
+
 # словарь операций для метаданных
 operations = {
     0: 'shtraf',
@@ -319,7 +328,7 @@ def subscribed_chats_transform(update):
 # логирование команд
 def loglog(**command):
     def decorator(func):
-        def wrapped(*msg):
+        def wrapped(*msg, **kwmsg):
             if command['type'] == 'message':
                 cmdLine = msg[0].text.lower().strip().split()
                 cmdName = cmdLine[0].split('@')
@@ -339,7 +348,7 @@ def loglog(**command):
             elif command['type'] == 'sql_chatID':
                 print('Chat_id =', msg[0])
 
-            res = func(*msg)
+            res = func(*msg, **kwmsg)
             print('##########', datetime.datetime.now(), command['command'], '\n')
             return res
         return wrapped

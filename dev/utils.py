@@ -7,9 +7,53 @@ import database as db
 import random
 
 
+# обновление CHAT_ID в базе
+# def updateChatId(e, cid, bot):
+def updateChatId(e, cid):
+    if e.args[0].find('Bad Request: group chat was upgraded to a supergroup chat') != -1:
+        import json as js
+
+        d = js.loads(str(e.args[0].split('\n')[1][3:-2]))
+        newCid = d['parameters']['migrate_to_chat_id']
+
+        print('!!! CHAT WITH CHAT_ID {} MOVED TO CHAT_ID {} !!!'.format(cid, newCid))
+        # print('!!! UPDATING ALL DATABASE !!!')
+
+        if not(db.boolean_select(db.check_if_settings_exist_text, [cid])):
+            db.sql_exec(db.ins_settings_copy_text, [newCid, cid])
+            cfg.settings[newCid] = cfg.settings[cid].copy()
+
+        cfg.bot.send_message(newCid, cfg.group_to_supergroup_text)
+
+        return newCid
+        # for table in tables_with_chat_id:
+        #     print(update_chat_id_text.format(table))
+
+
+def getSettings(cid, setting=None):
+    try:
+        return cfg.settings[cid][setting] if setting else cfg.settings[cid]
+    except Exception as e:
+        print(e)
+        if e.__class__.__name__ == 'ApiException':
+            newCid = updateChatId(e, cid)
+            return cfg.settings[newCid][setting] if setting else cfg.settings[newCid]
+
+
+def sendMessage(bot, cid, msg, parse_mode='HTML'):
+    try:
+        bot.send_message(cid, msg, parse_mode=parse_mode)
+    except Exception as e:
+        print(e)
+        if e.__class__.__name__ == 'ApiException':
+            newCid = updateChatId(e, cid)
+            bot.send_message(newCid, msg, parse_mode=parse_mode)
+
+
 # вернуть время обеда в datetime
 def calc_show_din_time(cid):
-    return cfg.settings[cid]['default_dinner_time'] + datetime.timedelta(minutes=dinner_vote_sum.get(cid, 0))
+    # return cfg.settings[cid]['default_dinner_time'] + datetime.timedelta(minutes=dinner_vote_sum.get(cid, 0))
+    return getSettings(cid, 'default_dinner_time') + datetime.timedelta(minutes=dinner_vote_sum.get(cid, 0))
 
 
 # обновить глобальную переменную с временем обеда
@@ -20,7 +64,7 @@ def upd_din_time(cid=False):
         # очищаем время голосов за обед в конце дня
         for chat in cfg.show_din_time.keys():
             dinner_vote_sum[chat] = 0
-            cfg.show_din_time[chat] = str(cfg.settings[chat]['default_dinner_time'])[:-3]
+            cfg.show_din_time[chat] = str(getSettings(cid, 'default_dinner_time'))[:-3]
     else:
         # пересчитываем время обеда в глобальной переменной
         cfg.show_din_time[cid] = str(calc_show_din_time(cid))[:-3]
@@ -43,8 +87,10 @@ def vote_func(vote_chat, bot, message):
             sign = vote_chat / abs(vote_chat)
             final_elec_time = vote_chat - sign * penalty_time
 
-        if abs(final_elec_time) > cfg.settings[cid]['max_deviation'].seconds // 60:
-            final_elec_time = sign * cfg.settings[cid]['max_deviation'].seconds // 60
+        # if abs(final_elec_time) > cfg.settings[cid]['max_deviation'].seconds // 60:
+        #     final_elec_time = sign * cfg.settings[cid]['max_deviation'].seconds // 60
+        if abs(final_elec_time) > getSettings(cid, 'max_deviation').seconds // 60:
+            final_elec_time = sign * getSettings(cid, 'max_deviation').seconds // 60
 
         if sign * final_elec_time < 0:
             final_elec_time = 0
@@ -71,8 +117,10 @@ def vote_func(vote_chat, bot, message):
                 sign = prev_vote_db / abs(prev_vote_db)
                 final_elec_time = prev_vote_db - sign * penalty_time
 
-            if abs(final_elec_time) > cfg.settings[cid]['max_deviation'].seconds // 60:
-                final_elec_time = sign * cfg.settings[cid]['max_deviation'].seconds // 60
+            # if abs(final_elec_time) > cfg.settings[cid]['max_deviation'].seconds // 60:
+            #     final_elec_time = sign * cfg.settings[cid]['max_deviation'].seconds // 60
+            if abs(final_elec_time) > getSettings(cid, 'max_deviation').seconds // 60:
+                final_elec_time = sign * getSettings(cid, 'max_deviation').seconds // 60
 
             if sign * final_elec_time < 0:
                 final_elec_time = 0
