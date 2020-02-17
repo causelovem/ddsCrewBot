@@ -122,8 +122,8 @@ upd_election_penalty_text = """UPDATE ELECTION
 reset_election_time_text = """UPDATE ELECTION SET elec_time = ?;"""
 
 colect_election_hist_text = """INSERT INTO ELECTION_HIST
-            SELECT elec.chat_id, elec.participant_id, elec.elec_time, elec.penalty_time,
-            cast(? as text) FROM ELECTION as elc;"""
+            SELECT elec.chat_id, elec.participant_id, elec.elec_time, elec.penalty_time, elec.minus_flg,
+            cast(? as text) FROM ELECTION as elec;"""
 
 sel_nonvoted_users_text = """SELECT part.participant_username
             FROM ELECTION as elec JOIN PARTICIPANT as part
@@ -314,7 +314,7 @@ def select_settings():
     except Exception as e:
         print('***ERROR: select_settings failed!***')
         print('Exception text: ' + str(e))
-        return 'ERROR!'
+        return None
 
 
 # очистка таблицы голосования, ТОЛЬКО ДЛЯ ТЕСТИРОВАНИЯ!!!
