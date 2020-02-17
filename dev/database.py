@@ -316,6 +316,7 @@ def select_settings():
         print('Exception text: ' + str(e))
         return 'ERROR!'
 
+
 # очистка таблицы голосования, ТОЛЬКО ДЛЯ ТЕСТИРОВАНИЯ!!!
 # sql_exec(reset_election_time_text, [0])
 # sql_exec("""UPDATE ELECTION SET penalty_time = ?;""", [0])

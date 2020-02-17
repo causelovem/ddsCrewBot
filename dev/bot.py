@@ -217,11 +217,7 @@ def ping_all(message):
         if i[1] != user_id:
             call_text = call_text + '@' + str(i[0]) + ' '
 
-    # проверка на /all@ddsCrewBot
-    if (message.text[0:15] == '/all@ddsCrewBot'):
-        bot.send_message(cid, call_text.strip() + message.text[15:])
-    else:
-        bot.send_message(cid, call_text.strip() + message.text[4:])
+    bot.send_message(cid, call_text.strip() + message.text[4:])
 
 
 # подбросить монетку
@@ -355,8 +351,7 @@ def penalty(message):
                 penalty_time = abs(int(cmd[2]))
                 if penalty_time != 0:
                     # if penalty_time > 25:
-                    # if penalty_time > cfg.settings[cid]['max_deviation'].minute:
-                    if penalty_time > utils.getSettings(cid, 'max_deviation').minute:
+                    if penalty_time > utils.getSettings(cid, 'max_deviation').seconds // 60:
                         bot.send_message(cid, 'Я не ставлю штрафы больше чем на максимальное отклонение!')
                     else:
                         # добавляем строку штрафа в метаданные
@@ -539,9 +534,6 @@ def settings_default_time(message):
         msg = message.text.lower().strip().split()
         # отображаем текущее значение настройки
         if len(msg) == 1:
-            # bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' +
-            #                  str(cfg.settings[cid]['default_dinner_time'])[:-3] + '</b>.',
-            #                  parse_mode='HTML')
             bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' +
                              str(utils.getSettings(cid, 'default_dinner_time'))[:-3] + '</b>.',
                              parse_mode='HTML')
@@ -551,10 +543,8 @@ def settings_default_time(message):
             time = [int(m) for m in msg[1].split(':')]
             newTime = datetime.timedelta(hours=time[0], minutes=time[1])
             # проверяем, что время по умолчанию + время отклонения не превышает сутки
-            # if (newTime + cfg.settings[cid]['max_deviation']).days > 0:
             if (newTime + chatSettings['max_deviation']).days > 0:
-                bot.send_message(cid, cfg.err_time_limit)
-            # elif cfg.settings[cid]['default_dinner_time'] == newTime:
+                bot.send_message(cid, cfg.err_time_limit, parse_mode='HTML')
             elif chatSettings['default_dinner_time'] == newTime:
                 bot.send_message(cid, 'Новое время совпадает с текущим.', parse_mode='HTML')
             else:
@@ -572,7 +562,7 @@ def settings_default_time(message):
                 # записываем изменения в БД
                 db.sql_exec(db.update_time_setting_text, [time[0], time[1], cid])
         else:
-            bot.send_message(cid, cfg.err_wrong_cmd + msg[0] + ' HH:MM')
+            bot.send_message(cid, cfg.err_wrong_cmd.format(msg[0] + ' HH:MM'), parse_mode='HTML')
     except Exception as e:
         print('***ERROR: Проблема с командой settings_default_time***')
         print('Exception text: ' + str(e))
@@ -588,9 +578,6 @@ def settings_max_deviation(message):
         msg = message.text.lower().strip().split()
         # отображаем текущее значение настройки
         if len(msg) == 1:
-            # bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' +
-            #                  str(cfg.settings[cid]['max_deviation'].seconds // 60) + '</b> минут.',
-            #                  parse_mode='HTML')
             bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' +
                              str(utils.getSettings(cid, 'max_deviation').seconds // 60) + '</b> минут.',
                              parse_mode='HTML')
@@ -599,10 +586,8 @@ def settings_max_deviation(message):
             chatSettings = utils.getSettings(cid)
             deviation = datetime.timedelta(minutes=int(msg[1]))
             # проверяем, что время по умолчанию + время отклонения не превышает сутки
-            # if (deviation + cfg.settings[cid]['default_dinner_time']).days > 0:
             if (deviation + chatSettings['default_dinner_time']).days > 0:
-                bot.send_message(cid, cfg.err_time_limit)
-            # elif cfg.settings[cid]['max_deviation'] == deviation:
+                bot.send_message(cid, cfg.err_time_limit, parse_mode='HTML')
             elif chatSettings['max_deviation'] == deviation:
                 bot.send_message(cid, 'Новое отклонение совпадает с текущим.', parse_mode='HTML')
             else:
@@ -615,7 +600,7 @@ def settings_max_deviation(message):
                 db.sql_exec(db.update_deviation_setting_text, [int(msg[1]), cid])
                 # TODO: пересчёт votemax
         else:
-            bot.send_message(cid, cfg.err_wrong_cmd + msg[0] + ' MM')
+            bot.send_message(cid, cfg.err_wrong_cmd.format(msg[0] + ' MM'), parse_mode='HTML')
     except Exception as e:
         print('***ERROR: Проблема с командой settings_max_deviation***')
         print('Exception text: ' + str(e))
@@ -632,15 +617,11 @@ def settings_flg(message):
         msg = message.text.lower().strip().split()
         # отображаем текущее значение настройки
         if len(msg) == 1:
-            # bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': ' +
-            #                  cfg.flg_check[cfg.settings[cid][cfg.settings_tovar_dict[msg[0]]]],
-            #                  parse_mode='HTML')
             bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': ' +
                              cfg.flg_check[utils.getSettings(cid, cfg.settings_tovar_dict[msg[0]])],
                              parse_mode='HTML')
         # проверяем корректность ввода
         elif len(msg) == 2 and msg[1] in cfg.flg_dict:
-            # if cfg.settings[cid][cfg.settings_tovar_dict[msg[0]]] == cfg.flg_dict[msg[1]]:
             if utils.getSettings(cid, cfg.settings_tovar_dict[msg[0]]) == cfg.flg_dict[msg[1]]:
                 bot.send_message(cid, 'Новое значение совпадает с текущим.', parse_mode='HTML')
             else:
@@ -651,7 +632,7 @@ def settings_flg(message):
                 db.sql_exec(db.update_flg_setting_text.format(cfg.settings_todb_dict[msg[0]],
                                                               cfg.flg_dict[msg[1]], cid), [])
         else:
-            bot.send_message(cid, cfg.err_wrong_cmd + msg[0] + ' on/off')
+            bot.send_message(cid, cfg.err_wrong_cmd.format(msg[0] + ' on/off'), parse_mode='HTML')
     except Exception as e:
         print('***ERROR: Проблема с командой settings_flg***')
         print('Exception text: ' + str(e))
@@ -671,14 +652,13 @@ def vote_cmd(message):
             hour_msg = time.localtime(message.date).tm_hour
             din_elec = int(msg[1])
             # проверяем что сегодня не выходной и время меньше чем час обеда в этом чате
-            # if week_day not in (5, 6) and hour_msg < cfg.settings[cid]['default_dinner_time'].seconds // 3600:
             if week_day not in (5, 6) and hour_msg < utils.getSettings(cid, 'default_dinner_time').seconds // 3600:
                 bot.send_chat_action(cid, 'typing')
                 utils.vote_func(din_elec, bot, message)
             else:
                 bot.reply_to(message, cfg.too_late_err)
         else:
-            bot.send_message(cid, cfg.err_wrong_cmd + 'vote [+/-]N')
+            bot.send_message(cid, cfg.err_wrong_cmd.format('vote [+/-]NN'), parse_mode='HTML')
     except Exception as e:
         print('***ERROR: Проблема с командой vote_cmd***')
         print('Exception text: ' + str(e))
@@ -724,7 +704,6 @@ def text_parser(message):
 
     if cid in cfg.subscribed_chats:
         # # лол кек ахахаха детектор
-        # if cfg.settings[cid]['lol_kek'] == 1 and tp.lol_kek_detector(message.text) is True:
         if utils.getSettings(cid, 'lol_kek') == 1 and tp.lol_kek_detector(message.text) is True:
             print('##########', datetime.datetime.now(), 'lol_kek_detector')
 
@@ -732,7 +711,6 @@ def text_parser(message):
                 bot.send_sticker(cid, random.choice(cfg.sticker_var))
                 print('Sent!')
 
-        # if cfg.settings[cid]['autodetect_vote'] == 1:
         if utils.getSettings(cid, 'autodetect_vote') == 1:
             # # голосование за обед
             din_elec = tp.dinner_election(message.text, cid)
@@ -740,7 +718,6 @@ def text_parser(message):
             # if din_elec is not False:
 
             # проверяем что сегодня не выходной и время меньше чем час обеда в этом чате
-            # if week_day not in (5, 6) and hour_msg < cfg.settings[cid]['default_dinner_time'].seconds // 3600 and din_elec is not False:
             if week_day not in (5, 6) and hour_msg < utils.getSettings(cid, 'default_dinner_time').seconds // 3600 and din_elec is not False:
                 bot.send_chat_action(cid, 'typing')
                 utils.vote_func(din_elec, bot, message)
@@ -748,7 +725,12 @@ def text_parser(message):
         # print('##########', datetime.datetime.now(), '\n')
 
 
+# print(cfg.settings[-379501584])
+# print(cfg.show_din_time[-379501584])
+
 # cfg.subscribed_chats.append(-379501584)
+# # cfg.settings[-379501584] = cfg.settings[-1001241306882].copy()
+
 # chatUsers = evt.call_all()
 # print(chatUsers)
 # print(cfg.show_din_time)

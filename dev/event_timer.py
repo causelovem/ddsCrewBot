@@ -42,7 +42,6 @@ def call_all(query=db.sel_all_text, chat_id=None):
 def send_msg(bot, msg, cid=None):
     chatToSend = cfg.subscribed_chats if cid is None else [cid]
     for chat_id in chatToSend:
-        # bot.send_message(chat_id, msg, parse_mode='HTML')
         utils.sendMessage(bot, chat_id, msg, 'HTML')
 
 
@@ -94,10 +93,8 @@ def check_metadata(bot):
 
                     if penalty < 0:
                         penalty = 0
-                    # elif penalty > cfg.settings[m[2]]['max_deviation'].minute:
-                    #     penalty = cfg.settings[m[2]]['max_deviation'].minute
-                    elif penalty > utils.getSettings(m[2], 'max_deviation').minute:
-                        penalty = utils.getSettings(m[2], 'max_deviation').minute
+                    elif penalty > utils.getSettings(m[2], 'max_deviation').seconds // 60:
+                        penalty = utils.getSettings(m[2], 'max_deviation').seconds // 60
 
                     # ставим/убираем штраф
                     db.sql_exec(db.upd_election_penalty_text, [penalty, m[2], m[3]])
@@ -107,7 +104,6 @@ def check_metadata(bot):
                 print(db.sql_exec("""SELECT * FROM METADATA""", []))
                 print(db.sql_exec("""SELECT * FROM ELECTION""", []))
             # воронков
-            # elif m[1] == 1 and cfg.settings[m[2]]['voronkov'] == 1:
             elif m[1] == 1 and utils.getSettings(m[2], 'voronkov') == 1:
                 dttmt = dttm.time()
                 expire_time = datetime.timedelta(hours=dttmt.hour, minutes=dttmt.minute,
@@ -232,20 +228,17 @@ def one_hour_timer(bot):
             for chats in cfg.subscribed_chats:
                 chatSettings = utils.getSettings(chats)
                 # доброе утро и вызвать pidora
-                # if str(time_now.time().hour) == '9' and cfg.settings[chats]['pidor'] == 1:
                 if str(time_now.time().hour) == '9' and chatSettings['pidor'] == 1:
                     send_msg(bot, rnd.choice(cfg.gm_text), chats)
                     send_msg(bot, '/pidor@SublimeBot', chats)
 
                 # напоминание о голосовании за обед
-                # if time_now.time().hour == cfg.settings[chats]['default_dinner_time'].seconds // 3600 - 1:
                 if time_now.time().hour == chatSettings['default_dinner_time'].seconds // 3600 - 1:
                     chatUsers = call_all(db.sel_nonvoted_users_text, chats)
                     for cid, msg in chatUsers.items():
                         send_msg(bot, msg + rnd.choice(cfg.vote_notif_text), cid)
 
                 # обед
-                # if time_now.time().hour == cfg.settings[chats]['default_dinner_time'].seconds // 3600:
                 if time_now.time().hour == chatSettings['default_dinner_time'].seconds // 3600:
                     chatUsers = call_all(chat_id=chats)
                     cur_time = datetime.timedelta(hours=time_now.time().hour, minutes=time_now.time().minute,
@@ -284,18 +277,17 @@ def one_hour_timer(bot):
 
             # поставить таймер на воронкова
             if str(time_now.time().hour) == '23':
-                # оставляем небольшой запас времени на вычисления
-                # 1 минута и 10 секунд
-                hh = rnd.randint(1, 119)
-                mm = rnd.randint(1, 58)
-                ss = rnd.randint(0, 50)
-
-                # вычисляем дату исполнения
-                delta = datetime.timedelta(hours=hh, minutes=mm, seconds=ss)
-                expire_date = time_now + delta
-
                 for cid in cfg.subscribed_chats:
-                    # if cfg.settings[cid]['voronkov'] == 1:
+                    # оставляем небольшой запас времени на вычисления
+                    # 1 минута и 10 секунд
+                    hh = rnd.randint(1, 119)
+                    mm = rnd.randint(1, 58)
+                    ss = rnd.randint(0, 50)
+
+                    # вычисляем дату исполнения
+                    delta = datetime.timedelta(hours=hh, minutes=mm, seconds=ss)
+                    expire_date = time_now + delta
+
                     if utils.getSettings(cid, 'voronkov') == 1:
                         users = db.sql_exec(db.sel_all_text, [cid])
                         if users != []:

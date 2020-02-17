@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 import config as cfg
-# import text_processing as tp
-# import time
 import datetime
 import database as db
 import random
 
 
 # обновление CHAT_ID в базе
-# def updateChatId(e, cid, bot):
 def updateChatId(e, cid):
     if e.args[0].find('Bad Request: group chat was upgraded to a supergroup chat') != -1:
         import json as js
@@ -18,13 +15,14 @@ def updateChatId(e, cid):
 
         print('!!! CHAT WITH CHAT_ID {} MOVED TO CHAT_ID {} !!!'.format(cid, newCid))
 
+        cfg.bot.send_message(newCid, cfg.group_to_supergroup_text)
+
         if not(db.boolean_select(db.check_if_settings_exist_text, [cid])):
             db.sql_exec(db.ins_settings_copy_text, [newCid, cid])
             cfg.settings[newCid] = cfg.settings[cid].copy()
+            cfg.show_din_time[newCid] = cfg.show_din_time[cid]
 
         db.delete_from_chatID(cid)
-
-        cfg.bot.send_message(newCid, cfg.group_to_supergroup_text)
 
         return newCid
 
@@ -51,7 +49,6 @@ def sendMessage(bot, cid, msg, parse_mode='HTML'):
 
 # вернуть время обеда в datetime
 def calc_show_din_time(cid):
-    # return cfg.settings[cid]['default_dinner_time'] + datetime.timedelta(minutes=dinner_vote_sum.get(cid, 0))
     return getSettings(cid, 'default_dinner_time') + datetime.timedelta(minutes=dinner_vote_sum.get(cid, 0))
 
 
@@ -86,8 +83,6 @@ def vote_func(vote_chat, bot, message):
             sign = vote_chat / abs(vote_chat)
             final_elec_time = vote_chat - sign * penalty_time
 
-        # if abs(final_elec_time) > cfg.settings[cid]['max_deviation'].seconds // 60:
-        #     final_elec_time = sign * cfg.settings[cid]['max_deviation'].seconds // 60
         if abs(final_elec_time) > getSettings(cid, 'max_deviation').seconds // 60:
             final_elec_time = sign * getSettings(cid, 'max_deviation').seconds // 60
 
@@ -116,8 +111,6 @@ def vote_func(vote_chat, bot, message):
                 sign = prev_vote_db / abs(prev_vote_db)
                 final_elec_time = prev_vote_db - sign * penalty_time
 
-            # if abs(final_elec_time) > cfg.settings[cid]['max_deviation'].seconds // 60:
-            #     final_elec_time = sign * cfg.settings[cid]['max_deviation'].seconds // 60
             if abs(final_elec_time) > getSettings(cid, 'max_deviation').seconds // 60:
                 final_elec_time = sign * getSettings(cid, 'max_deviation').seconds // 60
 
