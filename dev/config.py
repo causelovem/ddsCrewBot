@@ -115,7 +115,6 @@ curr_value_info = '''Текущее значение настройки '''
 dinner_default_time = (12, 45)
 # дефолтное время отклонения от обеда
 dinner_default_plusminus_time = 25
-# dinner_time = 0
 
 # дефолтные флаги
 autodetect_vote_default = 0
@@ -284,7 +283,6 @@ week_rus = {
     5: 'суббота',
     6: '-'
 }
-
 
 # словарь флаговых настроек
 settings_todb_dict = {

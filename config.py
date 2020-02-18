@@ -7,28 +7,46 @@ import datetime
 
 # токен бота
 token = tokenBot.token
+bot = None
+
+# название бота
+bot_name = 'ddsCrewBot'
 
 # приветственное сообщение бота
 hello_msg = '''Привет! Я бот для чата DDS. Если тебе это ничего не говорит, иди своей дорогой дальше.
 Я уже умею достаточно много чего, но всё равно буду расти:
-/all MESSAGE(optional)- пингануть всех в чате
+/help - показать данное сообщение
+/all MESSAGE(optional) - пингануть всех в чате
+/vote NN - проголосовать за время обеда
+/dinner - показать время обеда
 /coin - подбросить монетку
 /dice - подбросить кубик
 /ball - магический шар
-/dinner - показать время обеда
+/lol /kek - отправить весёлый стикер
 /penalty - показать текущие штрафы
 /penalty @Username N - поставить штраф
 /penalty cancel N - отменить штраф
 /meme NAME/ID - показать мем NAME/ID
-/meme_add link NAME - добавить мем-ссылку в чат
+/meme_add LINK NAME - добавить мем-ссылку в чат
 /meme_add NAME - добавить мем-фото/видео в чат (ввести в подпись к фото/видео)
-/meme_del NAME - удалить мем из чата
+/meme_del NAME/ID - удалить мем из чата
 /nsfw - поднимает потенциально непристойное сообщение наверх, чтобы его не было видно
 /subscribe - подписаться на рассылку @all
 /unsubscribe - отписаться от рассылки @all
 /admin_subscribe_chat - подписать чат на чтение сообщений ботом и рассылки уведомлений
 /admin_unsubscribe_chat - отписать чат от чтения сообщений ботом и рассылки уведомлений
+/show_chat_id - показать id вашего чата
+/settings - настройки бота
 '''
+
+settings_msg = '''Доступные настройки:
+/settings_default_time HH:MM - время обеда по умолчанию
+/settings_max_deviation MM - максимальное отклонение от времени обеда в минутах
+/settings_autodetect_vote on/off - управление автоматическим чтением голосов в чате
+/settings_lolkek on/off - управление реакцией бота на лол кек в чате
+/settings_voronkov on/off - управление напоминаниями от Воронкова
+'''
+
 
 # название базы данных пользователей в чатах
 db_name = 'bot_database.db'
@@ -84,11 +102,28 @@ no_member = '''Я не нашёл {} в базе...
 Проверь написание ника!
 Ну, или может быть этот человек ещё не подписался?'''
 
+# ошибки команд
+err_wrong_cmd = '''<b>Ошибка</b>: Неправильное использование команды, формат ввода: {}'''
+err_time_limit = '''<b>Ошибка</b>: Максимально возможное время обеда превышает одни сутки.
+Измените время обеда по умолчанию или среднее время отклонения.'''
+too_late_err = '''Слишком поздно для голосования за время обеда!'''
+
+# информация о текущем значении настройки
+curr_value_info = '''Текущее значение настройки '''
 
 # дефолтное время обеда (часы, минуты)
 dinner_default_time = (12, 45)
-dinner_max_plusminus_time = 25
-dinner_time = 0
+# дефолтное время отклонения от обеда
+dinner_default_plusminus_time = 25
+
+# дефолтные флаги
+autodetect_vote_default = 0
+lol_kek_default = 0
+voronkov_default = 0
+pidor_default = 0
+
+# настройки во всех чатах
+settings = {}
 
 # список чатов, чьи сообщения бот читает
 subscribed_chats = []
@@ -145,7 +180,7 @@ ball_var = ['Бесспорно', 'Предрешено', 'Никаких сом
             ]
 
 # переменная для показа времени
-show_din_time = ''
+show_din_time = {}
 
 # текст "доброе утро"
 gm_text = ['С добрым утром, работяги!', 'Мир, труд, май!', 'Ммм... Работка!', 'Нада роботац!']
@@ -206,6 +241,13 @@ meme_dict_text = {
     'meme_query_error': 'Мне нужно только название мема или его номер!'
 }
 
+# тект при смене chat_id группы
+group_to_supergroup_text = '''Ой! Ваш чат обновился до супергруппы.
+Мы сохранили ваши настройки, но вам нужно повторно подписать бота на чат:
+/admin_subscribe_chat
+И подписаться для участия в голосовании:
+/subscribe'''
+
 # словарь операций для метаданных
 operations = {
     0: 'shtraf',
@@ -242,6 +284,38 @@ week_rus = {
     6: '-'
 }
 
+# словарь флаговых настроек
+settings_todb_dict = {
+    '/settings_autodetect_vote': 'autodetect_vote_flg',
+    '/settings_lolkek': 'lol_kek_flg',
+    '/settings_voronkov': 'voronkov_flg',
+    '/settings_pidor': 'pidor_flg'
+}
+
+settings_tovar_dict = {
+    '/settings_default_time': 'default_dinner_time',
+    '/settings_max_deviation': 'max_deviation',
+    '/settings_autodetect_vote': 'autodetect_vote',
+    '/settings_lolkek': 'lol_kek',
+    '/settings_voronkov': 'voronkov',
+    '/settings_pidor': 'pidor'
+}
+
+# словарь переключения настроек
+flg_dict = {'on': 1, 'off': 0}
+flg_rus = {'on': ' <b>активирована</b>!', 'off': ' <b>деактивирована</b>!'}
+flg_check = {1: '<b>активирована</b>.', 0: '<b>деактивирована</b>.'}
+
+
+# функция для повторения команды бота при выкидывании исключения
+def retry_bot_command(command, *args):
+    try:
+        command(*args)
+    except Exception as e:
+        print(e)
+        print('Попробую ещё раз')
+        command(*args)
+
 
 # функция преобразования списка подписавшихся чатов,
 # для более удобного использования
@@ -254,7 +328,16 @@ def subscribed_chats_transform(update):
 # логирование команд
 def loglog(**command):
     def decorator(func):
-        def wrapped(*msg):
+        def wrapped(*msg, **kwmsg):
+            if command['type'] == 'message':
+                cmdLine = msg[0].text.lower().strip().split()
+                cmdName = cmdLine[0].split('@')
+                if len(cmdName) == 2 and cmdName[1] == bot_name.lower():
+                    cmdLine[0] = cmdName[0]
+                    msg[0].text = ' '.join(cmdLine)
+                elif len(cmdName) != 1:
+                    return
+
             print('##########', datetime.datetime.now(), command['command'])
             if command['type'] == 'message':
                 print('Chat_id =', msg[0].chat.id)
@@ -265,7 +348,7 @@ def loglog(**command):
             elif command['type'] == 'sql_chatID':
                 print('Chat_id =', msg[0])
 
-            res = func(*msg)
+            res = func(*msg, **kwmsg)
             print('##########', datetime.datetime.now(), command['command'], '\n')
             return res
         return wrapped

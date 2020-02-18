@@ -128,35 +128,6 @@ def vote_func(vote_chat, bot, message):
         db.sql_exec(db.upd_election_elec_text, [vote_chat, cid, user_id])
 
 
-# пересчитать время обеда в оперативке после перезагрузки бота
-# @cfg.loglog(command='vote_recalc', type='bot')
-# def vote_recalc():
-#     dinner_vote = db.sql_exec(db.sel_all_election_text, [])
-#     for i in range(len(dinner_vote)):
-#         cid = dinner_vote[i][0]
-#         # user_id = dinner_vote[i][1]
-#         vote_chat = dinner_vote[i][2]
-#         penalty_time = dinner_vote[i][3]
-#         final_elec_time = 0
-#         sign = 1
-
-#         if vote_chat != 0:
-#             sign = vote_chat / abs(vote_chat)
-#             final_elec_time = vote_chat - sign * penalty_time
-
-#         if abs(final_elec_time) > 25:
-#             final_elec_time = sign * 25
-
-#         if sign * final_elec_time < 0:
-#             final_elec_time = 0
-
-#         # final_elec_time = datetime.timedelta(minutes=final_elec_time)
-#         # считаем сумму голосов отдельно от времени обеда
-#         dinner_vote_sum[cid] = dinner_vote_sum.get(cid, 0) + final_elec_time
-#         # обновляем итоговое время обеда
-#         upd_din_time(cid)
-
-
 # nsfw print function
 def nsfw_print(cid, bot):
     bot.send_sticker(cid, cfg.sticker_dog_left)

@@ -703,16 +703,15 @@ def text_parser(message):
     # user_id = message.from_user.id
 
     if cid in cfg.subscribed_chats:
-        # # лол кек ахахаха детектор
+        # лол кек ахахаха детектор
         if utils.getSettings(cid, 'lol_kek') == 1 and tp.lol_kek_detector(message.text) is True:
-            print('##########', datetime.datetime.now(), 'lol_kek_detector')
-
             if random.random() >= 0.8:
                 bot.send_sticker(cid, random.choice(cfg.sticker_var))
                 print('Sent!')
 
+        # голосование за обед
         if utils.getSettings(cid, 'autodetect_vote') == 1:
-            # # голосование за обед
+            bot.send_chat_action(cid, 'typing')
             din_elec = tp.dinner_election(message.text, cid)
             # ТОЛЬКО ДЛЯ ТЕСТИРОВАНИЯ!!!
             # if din_elec is not False:
@@ -721,8 +720,6 @@ def text_parser(message):
             if week_day not in (5, 6) and hour_msg < utils.getSettings(cid, 'default_dinner_time').seconds // 3600 and din_elec is not False:
                 bot.send_chat_action(cid, 'typing')
                 utils.vote_func(din_elec, bot, message)
-
-        # print('##########', datetime.datetime.now(), '\n')
 
 
 # print(cfg.settings[-379501584])

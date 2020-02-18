@@ -6,6 +6,7 @@ import config as cfg
 import database as db
 import random as rnd
 import time
+import utils
 
 rnd.seed(datetime.datetime.now().time().second)
 
@@ -19,7 +20,7 @@ def call_all(query=db.sel_all_text, chat_id=None):
             if users == []:
                 chatUsers[cid] = ''
                 continue
-            call_users = 'Эй, @all: '
+            call_users = '@all: '
             for i in users:
                 call_users += '@' + str(i[0]) + ' '
             chatUsers[cid] = call_users.strip() + '\n'
@@ -29,7 +30,7 @@ def call_all(query=db.sel_all_text, chat_id=None):
             chatUsers[chat_id] = ''
             return chatUsers
 
-        call_users = 'Эй, @all: '
+        call_users = '@all: '
         for i in users:
             call_users += '@' + str(i[0]) + ' '
         chatUsers[chat_id] = call_users.strip() + '\n'
@@ -39,11 +40,9 @@ def call_all(query=db.sel_all_text, chat_id=None):
 
 @cfg.loglog(command='send_msg', type='bot')
 def send_msg(bot, msg, cid=None):
-    if cid is None:
-        for chat_id in cfg.subscribed_chats:
-            bot.send_message(chat_id, msg)
-    else:
-        bot.send_message(cid, msg)
+    chatToSend = cfg.subscribed_chats if cid is None else [cid]
+    for chat_id in chatToSend:
+        utils.sendMessage(bot, chat_id, msg, 'HTML')
 
 
 @cfg.loglog(command='check_metadata', type='bot')
@@ -86,15 +85,15 @@ def check_metadata(bot):
 
                     if penalty < 0:
                         penalty = 0
-                    elif penalty > 25:
-                        penalty = 25
+                    elif penalty > utils.getSettings(m[2], 'max_deviation').seconds // 60:
+                        penalty = utils.getSettings(m[2], 'max_deviation').seconds // 60
 
                     # ставим/убираем штраф
                     db.sql_exec(db.upd_election_penalty_text, [penalty, m[2], m[3]])
                     # обновляем строку в метаданных как успешно отработавшую
                     db.sql_exec(db.upd_operation_meta_text, [0, m[0]])
             # воронков
-            elif m[1] == 1:
+            elif m[1] == 1 and utils.getSettings(m[2], 'voronkov') == 1:
                 dttmt = dttm.time()
                 expire_time = datetime.timedelta(hours=dttmt.hour, minutes=dttmt.minute,
                                                  seconds=dttmt.second)
@@ -168,7 +167,8 @@ def dinner_timer(bot, chat_id):
         if msg == '':
             print('Чат отписался от рассылки, сообщение не отправлено; CHAT_ID = ' + str(cid))
         else:
-            send_msg(bot, '{}{}{}{}'.format(msg, rnd.choice(cfg.dinner_notif_text), rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
+            send_msg(bot, '{}{}{}<b>{}</b>'.format(msg, rnd.choice(cfg.dinner_notif_text),
+                                                   rnd.choice(cfg.dinner_text), cfg.show_din_time[cid]), cid)
 
 
 @cfg.loglog(command='one_hour_timer', type='bot')
@@ -213,114 +213,82 @@ def one_hour_timer(bot):
     if to_show == 1:
         # будние дни
         if time_now.weekday() not in (5, 6):
-            # доброе утро и вызвать pidora
-            if str(time_now.time().hour) == '9':
-                send_msg(bot, rnd.choice(cfg.gm_text))
-                send_msg(bot, '/pidor@SublimeBot')
+            for chats in cfg.subscribed_chats:
+                chatSettings = utils.getSettings(chats)
 
-            # напоминание о голосовании за обед
-            if str(time_now.time().hour) == '11':
-                chatUsers = call_all(db.sel_nonvoted_users_text)
-                for cid, msg in chatUsers.items():
-                    if msg == '':
-                        send_msg(bot, rnd.choice(cfg.success_vote_notif_text), cid)
-                    else:
+                # доброе утро и вызвать pidora
+                if str(time_now.time().hour) == '9' and chatSettings['pidor'] == 1:
+                    send_msg(bot, rnd.choice(cfg.gm_text), chats)
+                    send_msg(bot, '/pidor@SublimeBot', chats)
+
+                # напоминание о голосовании за обед
+                if time_now.time().hour == chatSettings['default_dinner_time'].seconds // 3600 - 1:
+                    chatUsers = call_all(db.sel_nonvoted_users_text, chats)
+                    for cid, msg in chatUsers.items():
                         send_msg(bot, msg + rnd.choice(cfg.vote_notif_text), cid)
 
-            # обед
-            if str(time_now.time().hour) == '12':
-                chatUsers = call_all()
-                cur_time = datetime.timedelta(hours=time_now.time().hour, minutes=time_now.time().minute, seconds=time_now.time().second)
-                for cid, msg in chatUsers.items():
-                    if time_now.weekday() == 0:
-                        cfg.dinner_time = cfg.dinner_default_time
-                        cfg.dinner_time = datetime.timedelta(hours=cfg.dinner_time[0],
-                                                             minutes=cfg.dinner_time[1])
-                        cfg.show_din_time = str(cfg.dinner_time)[:-3]
+                # обед
+                if time_now.time().hour == chatSettings['default_dinner_time'].seconds // 3600:
+                    chatUsers = call_all(chat_id=chats)
+                    cur_time = datetime.timedelta(hours=time_now.time().hour, minutes=time_now.time().minute,
+                                                  seconds=time_now.time().second)
+                    for cid, msg in chatUsers.items():
+                        send_msg(bot, '{}{}<b>{}</b>'.format(msg, rnd.choice(cfg.dinner_text),
+                                                             cfg.show_din_time[cid]), cid)
+                        # сохраняем историю голосования
+                        db.sql_exec(db.colect_election_hist_text, [str(time_now.date())])
+                        # обнуляем время голосования
+                        db.sql_exec(db.reset_election_time_text, [0])
 
-                        elec = db.sql_exec(db.sel_election_penalty_B_text, [])
+                        # ставим таймер за 10 минут до обеда, о напоминании об обеде
+                        delta = utils.calc_show_din_time(cid) - cur_time - datetime.timedelta(minutes=10,
+                                                                                              seconds=0)
+                        th.Timer(int(delta.total_seconds()) + 1, dinner_timer, args=(bot, cid,)).start()
 
-                        final_elec_time = 0
-                        for part in elec:
-                            elec_time = int(part[2])
-                            pen_time = int(part[3])
+                # # намёк поесть
+                # if str(time_now.time().hour) == '17':
+                #     send_msg(bot, rnd.choice(cfg.eat_text))
 
-                            sign = elec_time / abs(elec_time)
-                            tmp_time = elec_time - sign * pen_time
+                # пора уходить с работы
+                if str(time_now.time().hour) == '19':
+                    send_msg(bot, rnd.choice(cfg.bb_text), chats)
 
-                            if abs(tmp_time) > 25:
-                                tmp_time = sign * 25
-
-                            if sign * tmp_time < 0:
-                                tmp_time = 0
-
-                            final_elec_time += tmp_time
-
-                        final_elec_time = datetime.timedelta(minutes=final_elec_time)
-                        cfg.dinner_time += final_elec_time
-                        cfg.show_din_time = str(cfg.dinner_time)[:-3]
-
-                    if msg == '':
-                        send_msg(bot, '{}{}'.format(rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
-                    else:
-                        send_msg(bot, '{}{}{}'.format(msg, rnd.choice(cfg.dinner_text), cfg.show_din_time), cid)
-                    # сохраняем историю голосования
-                    db.sql_exec(db.colect_election_hist_text, [str(time_now.date())])
-                    # обнуляем время голосования
-                    db.sql_exec(db.reset_election_time_text, [0])
-                    # обнуляем время штрафЬ
-                    db.sql_exec(db.reset_penalty_B_time_text, [0])
-
-                    # ставим таймер за 10 минут до обеда, о напоминании об обеде
-                    delta = cfg.dinner_time - cur_time - datetime.timedelta(minutes=10, seconds=0)
-                    th.Timer(int(delta.total_seconds()) + 1, dinner_timer, args=(bot, cid,)).start()
-
-            # # намёк поесть
-            # if str(time_now.time().hour) == '17':
-            #     send_msg(bot, rnd.choice(cfg.eat_text))
-
-            # пора уходить с работы
-            if str(time_now.time().hour) == '19':
-                send_msg(bot, rnd.choice(cfg.bb_text))
-
-            # в определённое время намекать на попить
-            if str(time_now.time().hour) in ('11', '15', '17', '18'):
-                send_msg(bot, rnd.choice(cfg.pitb_text))
+                # в определённое время намекать на попить
+                if str(time_now.time().hour) in ('11', '15', '17', '18'):
+                    send_msg(bot, rnd.choice(cfg.pitb_text), chats)
         # выходные
         elif time_now.weekday() == 6:
             # напоминать про дсс
             if str(time_now.time().hour) == '19':
                 chatUsers = call_all()
                 for cid, msg in chatUsers.items():
-                    if msg == '':
-                        send_msg(bot, rnd.choice(cfg.dss_text), cid)
-                    else:
-                        send_msg(bot, msg + rnd.choice(cfg.dss_text), cid)
+                    send_msg(bot, msg + rnd.choice(cfg.dss_text), cid)
 
             # поставить таймер на воронкова
             if str(time_now.time().hour) == '23':
-                # оставляем небольшой запас времени на вычисления
-                # 1 минута и 10 секунд
-                hh = rnd.randint(1, 119)
-                mm = rnd.randint(1, 58)
-                ss = rnd.randint(0, 50)
-
-                # вычисляем дату исполнения
-                delta = datetime.timedelta(hours=hh, minutes=mm, seconds=ss)
-                expire_date = time_now + delta
-
                 for cid in cfg.subscribed_chats:
-                    users = db.sql_exec(db.sel_all_text, [cid])
-                    if users != []:
-                        call_user = rnd.choice(users)[1]
+                    # оставляем небольшой запас времени на вычисления
+                    # 1 минута и 10 секунд
+                    hh = rnd.randint(1, 119)
+                    mm = rnd.randint(1, 58)
+                    ss = rnd.randint(0, 50)
 
-                        # добавляем строку воронкова в метаданные для каждого чата
-                        db.sql_exec(db.ins_operation_meta_text,
-                                    [cfg.max_id_rk, 1, cid, call_user, -1,
-                                     str(time_now)[:-7], str(expire_date)[:-7], 1])
-                        cfg.max_id_rk += 1
-                    else:
-                        print('! ОШИБКА, НЕТ ЮЗЕРОВ В БАЗЕ ДЛЯ CHAT_ID = ' + str(cid) + ' !')
+                    # вычисляем дату исполнения
+                    delta = datetime.timedelta(hours=hh, minutes=mm, seconds=ss)
+                    expire_date = time_now + delta
+
+                    if utils.getSettings(cid, 'voronkov') == 1:
+                        users = db.sql_exec(db.sel_all_text, [cid])
+                        if users != []:
+                            call_user = rnd.choice(users)[1]
+
+                            # добавляем строку воронкова в метаданные для каждого чата
+                            db.sql_exec(db.ins_operation_meta_text,
+                                        [cfg.max_id_rk, 1, cid, call_user, -1,
+                                         str(time_now)[:-7], str(expire_date)[:-7], 1])
+                            cfg.max_id_rk += 1
+                        else:
+                            print('! ОШИБКА, НЕТ ЮЗЕРОВ В БАЗЕ ДЛЯ CHAT_ID = ' + str(cid) + ' !')
 
     # выводим дату для лога и выполняем системные сбросы и таймеры
     if str(time_now.time().hour) == '0':
@@ -335,7 +303,5 @@ def one_hour_timer(bot):
             cfg.meta_error_flg = 0
             check_metadata(bot)
 
-        # обнуляем время голосовния в боте
-        cfg.dinner_time = cfg.dinner_default_time
-        cfg.dinner_time = datetime.timedelta(hours=cfg.dinner_time[0], minutes=cfg.dinner_time[1])
-        cfg.show_din_time = str(cfg.dinner_time)[:-3]
+        # обнуляем время голосования в боте
+        utils.upd_din_time()
