@@ -711,7 +711,6 @@ def text_parser(message):
 
         # голосование за обед
         if utils.getSettings(cid, 'autodetect_vote') == 1:
-            bot.send_chat_action(cid, 'typing')
             din_elec = tp.dinner_election(message.text, cid)
             # ТОЛЬКО ДЛЯ ТЕСТИРОВАНИЯ!!!
             # if din_elec is not False:

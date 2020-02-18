@@ -562,7 +562,6 @@ def text_parser(message):
 
         # голосование за обед
         if utils.getSettings(cid, 'autodetect_vote') == 1:
-            bot.send_chat_action(cid, 'typing')
             din_elec = tp.dinner_election(message.text, cid)
             # проверяем что сегодня не выходной и время меньше чем час обеда в этом чате
             if week_day not in (5, 6) and hour_msg < utils.getSettings(cid, 'default_dinner_time').seconds // 3600 and din_elec is not False:
