@@ -219,7 +219,7 @@ def meme_add_processing(message, meme_type, bot):
             bot.send_message(cid, cfg.meme_dict_text['add_link_query_error'])
             return
 
-    if res is None:
+    if res is not None:
         bot.send_message(cid, cfg.meme_dict_text['add_success'].format(meme_name))
     else:
         bot.send_message(cid, cfg.meme_dict_text['add_unknown_error'])
