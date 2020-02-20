@@ -543,6 +543,9 @@ def settings_default_time(message):
             # проверяем, что время по умолчанию + время отклонения не превышает сутки
             if (newTime + chatSettings['max_deviation']).days > 0:
                 bot.send_message(cid, cfg.err_time_limit, parse_mode='HTML')
+            # проверяем, что время по умолчанию меньше, чем конец голосования
+            elif chatSettings['elec_end_hour'] >= newTime.seconds // 3600:
+                bot.send_message(cid, cfg.big_end_error, parse_mode='HTML')
             elif chatSettings['default_dinner_time'] == newTime:
                 bot.send_message(cid, 'Новое время совпадает с текущим.', parse_mode='HTML')
             else:
@@ -604,7 +607,7 @@ def settings_max_deviation(message):
         print('Exception text: ' + str(e))
 
 
-# update среднего времени отклонения от обеда
+# update конца голосования за обед
 @bot.message_handler(commands=['settings_election_end_hour'])
 @cfg.loglog(command='settings_election_end_hour', type='message')
 @retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
@@ -621,23 +624,23 @@ def settings_election_end_hour(message):
         elif len(msg) == 2 and tp.hour_checker(msg[1]):
             chatSettings = utils.getSettings(cid)
             new_elec_end_hour = int(msg[1])
-            # проверяем, что время по умолчанию + время отклонения не превышает сутки
+            # проверяем, что время по умолчанию меньше, чем конец голосования
             if new_elec_end_hour >= chatSettings['default_dinner_time'].seconds // 3600:
-                bot.send_message(cid, cfg.err_time_limit, parse_mode='HTML')
+                bot.send_message(cid, cfg.big_end_error, parse_mode='HTML')
             elif chatSettings['elec_end_hour'] == new_elec_end_hour:
-                bot.send_message(cid, 'Новое отклонение совпадает с текущим.', parse_mode='HTML')
+                bot.send_message(cid, 'Новое время окончания голосования совпадает с текущим.',
+                                 parse_mode='HTML')
             else:
                 # обновляем настройку в оперативке
-                cfg.settings[cid]['elec_end_hour'] = deviation
-                bot.send_message(cid, 'Максимальное время отклонения от обеда изменено, новое значение: <b>' +
-                                 msg[1] + '</b> минут.',
-                                 parse_mode='HTML')
+                cfg.settings[cid]['elec_end_hour'] = new_elec_end_hour
+                bot.send_message(cid, 'Время окончания голосования изменено, новое значение: <b>' +
+                                 msg[1] + '</b>.', parse_mode='HTML')
                 # обновляем настройку в БД
-                db.sql_exec(db.update_deviation_setting_text, [int(msg[1]), cid])
+                db.sql_exec(db.update_elec_end_hour_setting_text, [int(msg[1]), cid])
         else:
             bot.send_message(cid, cfg.err_wrong_cmd.format(msg[0] + ' HH'), parse_mode='HTML')
     except Exception as e:
-        print('***ERROR: Проблема с командой settings_max_deviation***')
+        print('***ERROR: Проблема с командой settings_election_end_hour***')
         print('Exception text: ' + str(e))
 
 
@@ -687,7 +690,7 @@ def vote_cmd(message):
             hour_msg = time.localtime(message.date).tm_hour
             din_elec = int(msg[1])
             # проверяем что сегодня не выходной и время меньше чем час обеда в этом чате
-            if week_day not in (5, 6) and hour_msg < utils.getSettings(cid, 'default_dinner_time').seconds // 3600:
+            if week_day not in (5, 6) and hour_msg < utils.getSettings(cid, 'elec_end_hour'):
                 bot.send_chat_action(cid, 'typing')
                 utils.vote_func(din_elec, bot, message)
             else:
@@ -751,7 +754,7 @@ def text_parser(message):
             # if din_elec is not False:
 
             # проверяем что сегодня не выходной и время меньше чем час обеда в этом чате
-            if week_day not in (5, 6) and hour_msg < utils.getSettings(cid, 'default_dinner_time').seconds // 3600 and din_elec is not False:
+            if week_day not in (5, 6) and hour_msg < utils.getSettings(cid, 'elec_end_hour') and din_elec:
                 bot.send_chat_action(cid, 'typing')
                 utils.vote_func(din_elec, bot, message)
 

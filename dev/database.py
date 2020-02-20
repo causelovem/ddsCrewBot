@@ -71,6 +71,7 @@ ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
             meme_value text
             );"""
 
+
 ins_settings_copy_text = '''INSERT INTO SETTINGS
                 SELECT ?, default_time_hour, default_time_minute, max_deviation,
                        autodetect_vote_flg, lol_kek_flg, voronkov_flg, pidor_flg, elec_end_hour
@@ -192,13 +193,13 @@ update_time_setting_text = """UPDATE SETTINGS
 
 # обновление времени отклонения
 update_deviation_setting_text = """UPDATE SETTINGS
-                           SET max_deviation = ?
-                           WHERE chat_id = ?;"""
+                                SET max_deviation = ?
+                                WHERE chat_id = ?;"""
 
 # обновление времени окончания голосования
 update_elec_end_hour_setting_text = """UPDATE SETTINGS
-                           SET elec_end_hour = ?
-                           WHERE chat_id = ?;"""
+                                    SET elec_end_hour = ?
+                                    WHERE chat_id = ?;"""
 
 # обновление флаговых настроек
 update_flg_setting_text = "UPDATE SETTINGS SET {} = {} WHERE chat_id = {};"

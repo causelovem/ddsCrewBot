@@ -53,7 +53,7 @@ def minute_checker(msg):
         return True
 
 
-# проверяем валидность минут (настройка макс.отклонения)
+# проверяем валидность часов
 def hour_checker(msg):
     res = re.match(r'^([01]?[0-9]|2[0-3])$', msg)
     if res is None:

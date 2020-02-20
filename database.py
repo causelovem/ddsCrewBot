@@ -58,7 +58,8 @@ ct_settings_text = """CREATE TABLE IF NOT EXISTS SETTINGS
             autodetect_vote_flg integer,
             lol_kek_flg integer,
             voronkov_flg integer,
-            pidor_flg integer
+            pidor_flg integer,
+            elec_end_hour integer
             );"""
 
 ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
@@ -73,7 +74,7 @@ ct_meme_text = """CREATE TABLE IF NOT EXISTS MEME
 
 ins_settings_copy_text = '''INSERT INTO SETTINGS
                 SELECT ?, default_time_hour, default_time_minute, max_deviation,
-                       autodetect_vote_flg, lol_kek_flg, voronkov_flg, pidor_flg
+                       autodetect_vote_flg, lol_kek_flg, voronkov_flg, pidor_flg, elec_end_hour
                 FROM SETTING WHERE CHAT_ID = ?;'''
 
 ins_lj_participant_election_text = """INSERT INTO ELECTION
@@ -182,7 +183,7 @@ is_pidor_text = """___"""
 
 check_if_settings_exist_text = """SELECT 1 FROM SETTINGS WHERE chat_id = ?;"""
 
-ins_default_settings_text = """INSERT INTO SETTINGS VALUES (?,?,?,?,?,?,?,?);"""
+ins_default_settings_text = """INSERT INTO SETTINGS VALUES (?,?,?,?,?,?,?,?,?);"""
 
 # обновление среднего времени
 update_time_setting_text = """UPDATE SETTINGS
@@ -195,12 +196,17 @@ update_deviation_setting_text = """UPDATE SETTINGS
                            SET max_deviation = ?
                            WHERE chat_id = ?;"""
 
+# обновление времени окончания голосования
+update_elec_end_hour_setting_text = """UPDATE SETTINGS
+                                    SET elec_end_hour = ?
+                                    WHERE chat_id = ?;"""
+
 # обновление флаговых настроек
 update_flg_setting_text = "UPDATE SETTINGS SET {} = {} WHERE chat_id = {};"
 
 # вытаскиваем настройки по умолчанию в чатах
 select_settings_text = """SELECT chat_id, default_time_hour, default_time_minute,
-                  max_deviation, autodetect_vote_flg, lol_kek_flg, voronkov_flg, pidor_flg
+                  max_deviation, autodetect_vote_flg, lol_kek_flg, voronkov_flg, pidor_flg, elec_end_hour
                   FROM SETTINGS;"""
 
 
@@ -281,17 +287,19 @@ def default_settings(chat_id):
                   cfg.autodetect_vote_default,
                   cfg.lol_kek_default,
                   cfg.voronkov_default,
-                  cfg.pidor_default]
+                  cfg.pidor_default,
+                  cfg.elec_end_hour_default]
                  )
 
         cfg.settings[chat_id] = {
-            "default_dinner_time": datetime.timedelta(hours=cfg.dinner_default_time[0],
+            'default_dinner_time': datetime.timedelta(hours=cfg.dinner_default_time[0],
                                                       minutes=cfg.dinner_default_time[1]),
-            "max_deviation": datetime.timedelta(minutes=cfg.dinner_default_plusminus_time),
-            "autodetect_vote": cfg.autodetect_vote_default,
-            "lol_kek": cfg.lol_kek_default,
-            "voronkov": cfg.voronkov_default,
-            "pidor": cfg.pidor_default
+            'max_deviation': datetime.timedelta(minutes=cfg.dinner_default_plusminus_time),
+            'autodetect_vote': cfg.autodetect_vote_default,
+            'lol_kek': cfg.lol_kek_default,
+            'voronkov': cfg.voronkov_default,
+            'pidor': cfg.pidor_default,
+            'elec_end_hour': cfg.elec_end_hour_default
         }
 
 
@@ -307,7 +315,8 @@ def select_settings():
                 'autodetect_vote': res[i][4],
                 'lol_kek': res[i][5],
                 'voronkov': res[i][6],
-                'pidor': res[i][7]
+                'pidor': res[i][7],
+                'elec_end_hour': res[i][8]
             }
 
             cfg.show_din_time[res[i][0]] = str(settings[res[i][0]]['default_dinner_time'])[:-3]

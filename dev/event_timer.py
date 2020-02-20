@@ -233,13 +233,13 @@ def one_hour_timer(bot):
                     send_msg(bot, '/pidor@SublimeBot', chats)
 
                 # напоминание о голосовании за обед
-                if time_now.time().hour == chatSettings['default_dinner_time'].seconds // 3600 - 1:
+                if time_now.time().hour == chatSettings['elec_end_hour'] - 1:
                     chatUsers = call_all(db.sel_nonvoted_users_text, chats)
                     for cid, msg in chatUsers.items():
                         send_msg(bot, msg + rnd.choice(cfg.vote_notif_text), cid)
 
                 # обед
-                if time_now.time().hour == chatSettings['default_dinner_time'].seconds // 3600:
+                if time_now.time().hour == chatSettings['elec_end_hour']:
                     chatUsers = call_all(chat_id=chats)
                     cur_time = datetime.timedelta(hours=time_now.time().hour, minutes=time_now.time().minute,
                                                   seconds=time_now.time().second)
