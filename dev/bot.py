@@ -121,8 +121,6 @@ def start_bot(message):
 
     # инициируем настройки по умолчанию для новых чатов
     db.default_settings(cid)
-    # пересчитываем в оперативке настройки
-    # cfg.settings = db.select_settings()
     utils.upd_din_time(cid)
 
 
@@ -601,6 +599,43 @@ def settings_max_deviation(message):
                 # TODO: пересчёт votemax
         else:
             bot.send_message(cid, cfg.err_wrong_cmd.format(msg[0] + ' MM'), parse_mode='HTML')
+    except Exception as e:
+        print('***ERROR: Проблема с командой settings_max_deviation***')
+        print('Exception text: ' + str(e))
+
+
+# update среднего времени отклонения от обеда
+@bot.message_handler(commands=['settings_election_end_hour'])
+@cfg.loglog(command='settings_election_end_hour', type='message')
+@retrying.retry(stop_max_attempt_number=cfg.max_att, wait_random_min=cfg.w_min, wait_random_max=cfg.w_max)
+def settings_election_end_hour(message):
+    cid = message.chat.id
+    try:
+        msg = message.text.lower().strip().split()
+        # отображаем текущее значение настройки
+        if len(msg) == 1:
+            bot.send_message(cid, cfg.curr_value_info + cfg.settings_tovar_dict[msg[0]] + ': <b>' +
+                             str(utils.getSettings(cid, 'elec_end_hour')) + '</b>.',
+                             parse_mode='HTML')
+        # проверяем корректность ввода
+        elif len(msg) == 2 and tp.hour_checker(msg[1]):
+            chatSettings = utils.getSettings(cid)
+            new_elec_end_hour = int(msg[1])
+            # проверяем, что время по умолчанию + время отклонения не превышает сутки
+            if new_elec_end_hour >= chatSettings['default_dinner_time'].seconds // 3600:
+                bot.send_message(cid, cfg.err_time_limit, parse_mode='HTML')
+            elif chatSettings['elec_end_hour'] == new_elec_end_hour:
+                bot.send_message(cid, 'Новое отклонение совпадает с текущим.', parse_mode='HTML')
+            else:
+                # обновляем настройку в оперативке
+                cfg.settings[cid]['elec_end_hour'] = deviation
+                bot.send_message(cid, 'Максимальное время отклонения от обеда изменено, новое значение: <b>' +
+                                 msg[1] + '</b> минут.',
+                                 parse_mode='HTML')
+                # обновляем настройку в БД
+                db.sql_exec(db.update_deviation_setting_text, [int(msg[1]), cid])
+        else:
+            bot.send_message(cid, cfg.err_wrong_cmd.format(msg[0] + ' HH'), parse_mode='HTML')
     except Exception as e:
         print('***ERROR: Проблема с командой settings_max_deviation***')
         print('Exception text: ' + str(e))

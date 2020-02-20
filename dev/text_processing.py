@@ -53,6 +53,15 @@ def minute_checker(msg):
         return True
 
 
+# проверяем валидность минут (настройка макс.отклонения)
+def hour_checker(msg):
+    res = re.match(r'^([01]?[0-9]|2[0-3])$', msg)
+    if res is None:
+        return False
+    else:
+        return True
+
+
 # print(soft_sign('так \n\nсказатЬ'))
 # print(lol_kek_detector('кек'))
 # print(lol_kek_detector(' кекес'))

@@ -115,6 +115,8 @@ curr_value_info = '''Текущее значение настройки '''
 dinner_default_time = (12, 45)
 # дефолтное время отклонения от обеда
 dinner_default_plusminus_time = 25
+# дефолтный час окончания обеда
+elec_end_hour_default = 11
 
 # дефолтные флаги
 autodetect_vote_default = 0
@@ -298,7 +300,8 @@ settings_tovar_dict = {
     '/settings_autodetect_vote': 'autodetect_vote',
     '/settings_lolkek': 'lol_kek',
     '/settings_voronkov': 'voronkov',
-    '/settings_pidor': 'pidor'
+    '/settings_pidor': 'pidor',
+    '/settings_election_end_hour': 'election_end_hour'
 }
 
 # словарь переключения настроек
