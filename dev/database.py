@@ -230,6 +230,7 @@ def create_table():
     # таблица настроек
     cursor.execute(ct_settings_text)
     db.commit()
+    db.close()
 
 
 # выполнить sql запрос
@@ -240,7 +241,9 @@ def sql_exec(exec_text, params):
         cursor = db.cursor()
         cursor.execute(exec_text, params)
         db.commit()
-        return cursor.fetchall()
+        res = cursor.fetchall()
+        db.close()
+        return res
     except Exception as e:
         print('***ERROR: sql_exec failed!***')
         print('Exception text: ' + str(e))
@@ -354,6 +357,7 @@ def insert_into_participants(chat_id, user):
     # обновляем таблицу голосующих за обед
     cursor.execute(ins_lj_participant_election_text)
     db.commit()
+    db.close()
     return 1
 
 
@@ -366,6 +370,7 @@ def delete_from_participants(chat_id, user_id):
     # удаляем участника из таблицы голосующих за обед
     cursor.execute(del_election_text, [chat_id, user_id])
     db.commit()
+    db.close()
 
 
 # вставить данные в таблицу participant and election
@@ -381,6 +386,7 @@ def insert_into_chatID(chat_id):
 
     cursor.execute(ins_chatID_text, [chat_id])
     db.commit()
+    db.close()
     # обновляем список чатов для использования ботом
     cfg.subscribed_chats_transform(sql_exec(sel_all_chatID_text, []))
     return 1
@@ -393,6 +399,7 @@ def delete_from_chatID(chat_id):
     cursor = db.cursor()
     cursor.execute(del_chatID_text, [chat_id])
     db.commit()
+    db.close()
     # обновляем список чатов для использования ботом
     cfg.subscribed_chats_transform(sql_exec(sel_all_chatID_text, []))
 
